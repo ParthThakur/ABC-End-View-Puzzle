@@ -45,7 +45,7 @@ class EndViewBoard(object):
 
     def load_board(self):
 
-        d_board = [[[]]*self.grid_size]*self.grid_size
+        d_board = [[[]] * self.grid_size] * self.grid_size
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 d_board[i][j] = Cell()
@@ -61,11 +61,14 @@ class EndViewBoard(object):
 
     def __str__(self):
 
-        for index, rows in self.board.iterrows():
-            print(rows.index)
+        disp_board = [[[]] * self.grid_size] * self.grid_size
 
-        print(self.board)
-        return ""
+        for index, rows in self.board.iterrows():
+            for column, cell in rows.iteritems():
+                disp_board[index][column] = cell.value
+
+        return "\n".join([''.join(["{:4}".format(item) for item in row])
+                          for row in disp_board])
 
 
 def solve(grid_size, letter_set, top, bottom, left, right):
