@@ -28,7 +28,7 @@ class Cell(object):
         return False
 
     def __add__(self, other):
-        return [self, other]
+        raise Exception("Don't try to add two cells.")
 
 
 class EndViewBoard(object):
@@ -49,6 +49,7 @@ class EndViewBoard(object):
         print(right.constraints)
 
         self.board = self.load_board()
+        self.get_initial_state(self.board)
 
     def load_board(self):
 
@@ -57,8 +58,12 @@ class EndViewBoard(object):
             d_board.append([Cell('')
                             for _ in range(self.grid_size)])
 
-        df_board = pd.DataFrame(d_board)
+        df_board = np.array(d_board)
+        # print(df_board)
         return df_board
+
+    def get_initial_state(self, board):
+        pass
 
     def __repr__(self):
         return "EndViewBoard({}, {}, {}, {})".format(self.grid_size,
@@ -71,8 +76,8 @@ class EndViewBoard(object):
 
         disp_board = []
 
-        for index, rows in self.board.iterrows():
-            disp_board.append([cell.value for column, cell in rows.iteritems()])
+        for rows in self.board:
+            disp_board.append([cell.value for cell in rows])
 
         return "\n".join([''.join(["{:4}".format(str(item)) for item in row])
                           for row in disp_board])
