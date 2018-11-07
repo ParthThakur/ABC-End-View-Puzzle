@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from Solution import solve
 
 puzzle_input = pd.read_csv("puzzle_input.csv", header=None)
 puzzle_input.replace('X', 0, inplace=True)
@@ -31,3 +32,5 @@ top = Constraints(puzzle_input.T[2].tolist())
 bottom = Constraints(puzzle_input.T[3].tolist())
 left = Constraints(puzzle_input.T[4].tolist())
 right = Constraints(puzzle_input.T[5].tolist())
+
+solve(grid_size, letter_set, top, bottom, left, right)
