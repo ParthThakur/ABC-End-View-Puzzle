@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 
 letter_options = ['X']
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
 
 class Cell(object):
@@ -9,9 +12,10 @@ class Cell(object):
     Cell object for individual cells on the board.
     """
 
-    def __init__(self, letter=''):
+    def __init__(self, letter):
         self.value = letter
-        self.value_options = set() if self.value else set(letter_options)
+        self.value_options = ({self.value, 'X'} if self.value
+                              else set(letter_options))
 
     def set(self, options):
         self.value_options = options
@@ -22,6 +26,9 @@ class Cell(object):
             self.value = self.value_options.pop()
             return True
         return False
+
+    def __add__(self, other):
+        return [self, other]
 
 
 class EndViewBoard(object):
@@ -45,12 +52,13 @@ class EndViewBoard(object):
 
     def load_board(self):
 
-        d_board = [[[]] * self.grid_size] * self.grid_size
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                d_board[i][j] = Cell()
-        c_board = pd.DataFrame(d_board)
-        return c_board
+        d_board = []
+        for _ in range(self.grid_size):
+            d_board.append([Cell('')
+                            for _ in range(self.grid_size)])
+
+        df_board = pd.DataFrame(d_board)
+        return df_board
 
     def __repr__(self):
         return "EndViewBoard({}, {}, {}, {})".format(self.grid_size,
@@ -61,13 +69,12 @@ class EndViewBoard(object):
 
     def __str__(self):
 
-        disp_board = [[[]] * self.grid_size] * self.grid_size
+        disp_board = []
 
         for index, rows in self.board.iterrows():
-            for column, cell in rows.iteritems():
-                disp_board[index][column] = cell.value
+            disp_board.append([cell.value for column, cell in rows.iteritems()])
 
-        return "\n".join([''.join(["{:4}".format(item) for item in row])
+        return "\n".join([''.join(["{:4}".format(str(item)) for item in row])
                           for row in disp_board])
 
 
@@ -79,4 +86,5 @@ def solve(grid_size, letter_set, top, bottom, left, right):
 
     letter_options = letter_options + letter_set
     board = EndViewBoard(grid_size, top, bottom, left, right)
+    print("\n####\n")
     print(board)
