@@ -4,13 +4,13 @@ import numpy as np
 letter_options = ['X']
 
 
-def _make_cell():
+def _make_cell(constraints):
     """
     Helper function for EndViewBoard.load_board().
     Initializes each cell with 'X' as an option.
     :return:
     """
-    cell = Cell()
+    cell = Cell(constraints)
     cell.set_options('X')
     return cell
 
@@ -20,7 +20,9 @@ class Cell(object):
     Cell object for individual cells on the board.
     """
 
-    def __init__(self):
+    def __init__(self, constraints):
+        self.top, self.bottom, self.left, self.right = constraints
+
         self.value = ""
         self.value_option = ""
         self.value_set = []
@@ -31,7 +33,7 @@ class Cell(object):
 
     def set(self, option):
         self.value_option = option
-        return self.check()
+        return self.verify(option)
 
     def check(self, l):
         if l and not len(l) > 0:
@@ -54,22 +56,19 @@ class EndViewBoard(object):
     Board is the entire board for the game with a size of "grid_size".
     """
 
-    def __init__(self, grid_size, top, bottom, left, right):
+    def __init__(self, grid_size, constraints):
         self.grid_size = grid_size
-        self.top = top
-        self.bottom = bottom
-        self.left = left
-        self.right = right
+        self.top, self.bottom, self.left, self.right = constraints
 
-        self.board = self.load_board()
+        self.board = self.load_board(constraints)
         self.board = self.get_initial_state(self.board)
         self.board_values = self._board_values()
 
-    def load_board(self):
+    def load_board(self, constraints):
 
         d_board = []
         for _ in range(self.grid_size):
-            d_board.append([_make_cell() for _ in range(self.grid_size)])
+            d_board.append([_make_cell(constraints) for _ in range(self.grid_size)])
 
         df_board = np.array(d_board)
         # print(df_board)
@@ -119,23 +118,30 @@ class EndViewBoard(object):
         return pd.DataFrame(self.board_values).to_string()
 
 
-def solve(grid_size, letter_set, top, bottom, left, right):
+def solve(grid_size, letter_set, t, b, l, r):
     global letter_options
+    constraints = [t, b, l, r]
     if grid_size < len(letter_set):
         raise Exception("Grid size not proper. Size of the board must be "
                         "greater than the length of the letter set.")
 
     letter_options = letter_options + letter_set
-    board = EndViewBoard(grid_size, top, bottom, left, right)
+    board = EndViewBoard(grid_size, constraints)
     print("\n####\n")
     # print(pd.DataFrame(board.board))
-    # print(board)
 
-    for (r, c, value) in board.all_cells():
-        # print(r, c, value)
+    # for (r, c, value) in board.all_cells():
+    #     # print(r, c, value)
+    #     if value != ['X']:
+    #         if len(value) == 1:
+    #             board.board[r][c].value = value[0]
+    #             continue
+    #
+    #         option = value[-1]
+    #         if board.board[r][c].set(option):
+    #             print("Found {} at {}, {} through Cell.set()".format(option,
+    #                                                                  r, c))
+    #
+    #     break
 
-        if len(value) == 1 and value != ['X']:
-            board.board[r][c].value = value[0]
-
-        # break
-
+    print(board)
