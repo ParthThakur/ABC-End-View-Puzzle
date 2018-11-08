@@ -9,7 +9,7 @@ pd.set_option('display.width', 1000)
 
 def _make_cell():
     """
-    Helper function foe EndViewBoard.load_board().
+    Helper function for EndViewBoard.load_board().
     Initializes each cell with 'X' as an option.
     :return:
     """
@@ -29,17 +29,22 @@ class Cell(object):
         self.value_set = []
 
     def set_options(self, letter):
-        self.value_set.append(letter)
+        if self.check(letter):
+            self.value_set.append(letter)
 
     def set(self, letter):
         self.value_option = letter
         return self.check()
 
-    def check(self):
-        if len(self.value_set) == 1:
-            self.value = self.value_set.pop()
+    def check(self, l):
+        if l not in self.value_set:
             return True
         return False
+
+        # if len(self.value_set) == 1:
+        #     self.value = self.value_set.pop()
+        #     return True
+        # return False
 
     def __add__(self, other):
         raise Exception("Don't try to add two cells.")
@@ -57,13 +62,8 @@ class EndViewBoard(object):
         self.left = left
         self.right = right
 
-        print(top.constraints)
-        print(bottom.constraints)
-        print(left.constraints)
-        print(right.constraints)
-
         self.board = self.load_board()
-        self.get_initial_state(self.board)
+        self.board = self.get_initial_state(self.board)
 
     def load_board(self):
 
@@ -76,7 +76,23 @@ class EndViewBoard(object):
         return df_board
 
     def get_initial_state(self, board):
-        pass
+        top = self.top.constraints[::-1]
+        bot = self.bottom.constraints[::-1]
+        left = self.left.constraints[::-1]
+        right = self.right.constraints[::-1]
+        for cell in board[0]:
+            x = top.pop()
+            cell.set_options(x)
+        for cell in board[self.grid_size - 1]:
+            x = bot.pop()
+            cell.set_options(x)
+        for cell in board[:, 0]:
+            x = left.pop()
+            cell.set_options(x)
+        for cell in board[:, self.grid_size - 1]:
+            x = right.pop()
+            cell.set_options(x)
+        return board
 
     def __repr__(self):
         return "EndViewBoard({}, {}, {}, {})".format(self.grid_size,
@@ -90,10 +106,10 @@ class EndViewBoard(object):
         disp_board = []
 
         for rows in self.board:
-            disp_board.append([cell.value for cell in rows])
+            disp_board.append([cell.value_set for cell in rows])
+        print(pd.DataFrame(disp_board))
 
-        return "\n".join([''.join(["{:4}".format(str(item)) for item in row])
-                          for row in disp_board])
+        return ""
 
 
 def solve(grid_size, letter_set, top, bottom, left, right):
