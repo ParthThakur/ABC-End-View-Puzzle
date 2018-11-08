@@ -7,23 +7,37 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 
+def _make_cell():
+    """
+    Helper function foe EndViewBoard.load_board().
+    Initializes each cell with 'X' as an option.
+    :return:
+    """
+    cell = Cell()
+    cell.set_options('X')
+    return cell
+
+
 class Cell(object):
     """
     Cell object for individual cells on the board.
     """
 
-    def __init__(self, letter):
-        self.value = letter
-        self.value_options = ({self.value, 'X'} if self.value
-                              else set(letter_options))
+    def __init__(self):
+        self.value = ""
+        self.value_option = ""
+        self.value_set = []
 
-    def set(self, options):
-        self.value_options = options
+    def set_options(self, letter):
+        self.value_set.append(letter)
+
+    def set(self, letter):
+        self.value_option = letter
         return self.check()
 
     def check(self):
-        if len(self.value_options) == 1:
-            self.value = self.value_options.pop()
+        if len(self.value_set) == 1:
+            self.value = self.value_set.pop()
             return True
         return False
 
@@ -55,8 +69,7 @@ class EndViewBoard(object):
 
         d_board = []
         for _ in range(self.grid_size):
-            d_board.append([Cell('')
-                            for _ in range(self.grid_size)])
+            d_board.append([_make_cell() for _ in range(self.grid_size)])
 
         df_board = np.array(d_board)
         # print(df_board)
@@ -92,4 +105,12 @@ def solve(grid_size, letter_set, top, bottom, left, right):
     letter_options = letter_options + letter_set
     board = EndViewBoard(grid_size, top, bottom, left, right)
     print("\n####\n")
+    # print(pd.DataFrame(board.board))
     print(board)
+    #
+    # board.board[0][0].set_options('A')
+    # board.board[0][0].set_options('B')
+    # board.board[0][1].set_options('C')
+    # board.board[0][1].set_options('D')
+    # print(board.board[0][0].value_set)
+    # print(board.board[0][1].value_set)
