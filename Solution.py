@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 
 letter_options = ['X']
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
 
 
 def _make_cell():
@@ -30,14 +27,16 @@ class Cell(object):
 
     def set_options(self, letter):
         if self.check(letter):
-            self.value_set.append(letter)
+            self.value_set += letter
 
-    def set(self, letter):
-        self.value_option = letter
+    def set(self, option):
+        self.value_option = option
         return self.check()
 
     def check(self, l):
-        if l not in self.value_set:
+        if l and not len(l) > 0:
+            self.value_set = self.value_set[:1]
+        if l not in self.value_set and len(self.value_set) < 2:
             return True
         return False
 
@@ -64,6 +63,7 @@ class EndViewBoard(object):
 
         self.board = self.load_board()
         self.board = self.get_initial_state(self.board)
+        self.board_values = self._board_values()
 
     def load_board(self):
 
@@ -82,17 +82,30 @@ class EndViewBoard(object):
         right = self.right.constraints[::-1]
         for cell in board[0]:
             x = top.pop()
-            cell.set_options(x)
+            cell.set_options(x if x else list('IRAGE'))
         for cell in board[self.grid_size - 1]:
             x = bot.pop()
-            cell.set_options(x)
+            cell.set_options(x if x else list('IRAGE'))
         for cell in board[:, 0]:
             x = left.pop()
-            cell.set_options(x)
+            cell.set_options(x if x else list('IRAGE'))
         for cell in board[:, self.grid_size - 1]:
             x = right.pop()
-            cell.set_options(x)
+            cell.set_options(x if x else list('IRAGE'))
         return board
+
+    def all_cells(self):
+
+        return ([(*index, value)
+                for index, value in np.ndenumerate(self.board_values)])
+
+    def _board_values(self):
+        disp_board = []
+
+        for rows in self.board:
+            disp_board.append([cell.value_set for cell in rows])
+
+        return np.array(disp_board)
 
     def __repr__(self):
         return "EndViewBoard({}, {}, {}, {})".format(self.grid_size,
@@ -103,13 +116,7 @@ class EndViewBoard(object):
 
     def __str__(self):
 
-        disp_board = []
-
-        for rows in self.board:
-            disp_board.append([cell.value_set for cell in rows])
-        print(pd.DataFrame(disp_board))
-
-        return ""
+        return pd.DataFrame(self.board_values).to_string()
 
 
 def solve(grid_size, letter_set, top, bottom, left, right):
@@ -122,11 +129,13 @@ def solve(grid_size, letter_set, top, bottom, left, right):
     board = EndViewBoard(grid_size, top, bottom, left, right)
     print("\n####\n")
     # print(pd.DataFrame(board.board))
-    print(board)
-    #
-    # board.board[0][0].set_options('A')
-    # board.board[0][0].set_options('B')
-    # board.board[0][1].set_options('C')
-    # board.board[0][1].set_options('D')
-    # print(board.board[0][0].value_set)
-    # print(board.board[0][1].value_set)
+    # print(board)
+
+    for (r, c, value) in board.all_cells():
+        # print(r, c, value)
+
+        if len(value) == 1 and value != ['X']:
+            board.board[r][c].value = value[0]
+
+        # break
+
