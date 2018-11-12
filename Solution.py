@@ -64,7 +64,7 @@ class Cell(object):
     def verify(self, option):
         if len(option) == 1:
             return True
-        self.value_set.pop()
+        self.value_set.remove(option)
         return False
 
     def try_(self, option):
@@ -85,7 +85,7 @@ class EndViewBoard(object):
 
         self.board = load_board()
         self.board = self.get_initial_state(self.board)
-        self.board_values = self._board_values()
+        self.board_values = self.board_values()
 
     def get_initial_state(self, board):
         top = self.top.constraints[::-1]
@@ -111,31 +111,31 @@ class EndViewBoard(object):
                 for index, value in np.ndenumerate(self.board_values)])
 
     def check_cell(self, cell):
+        board_fix_values = self.board_fix_values()
         r, c = cell.row, cell.column
         x = grid_size - len(letter_options)
         try_value = cell.value_try
-        row = self.board_values[r]
-        column = self.board_values[:, c]
-        if try_value in row:
-            if try_value in column:
-                return False
-        # if r <= x:
-        #     if c <= x:
-        #         if try_value == self.top.constraints[c]:
-        #             if 'X' == (column[:r]).all():
-        #                 if 'X' == (row[:c]).all():
-        #                     return True
-        #         if try_value == self.left.constraints[c]:
-        #             if 'X' == (column[:r]).all():
-        #                 if 'X' == (row[:c]).all():
-        #                     return True
+        row = board_fix_values[r]
+        column = board_fix_values[:, c]
+        print(row, column, sep="\n")
+        if try_value in row or try_value in column:
+            print("try value in row or column")
+            print("board.check_cell({}): False".format(try_value))
+            return False
+        print("board.check_cell({}): True".format(try_value))
         return True
 
-    def _board_values(self):
+    def board_values(self):
         value_board = []
         for rows in self.board:
             value_board.append([cell.value_set for cell in rows])
         return np.array(value_board)
+
+    def board_fix_values(self):
+        set_values = []
+        for rows in self.board:
+            set_values.append([cell.value for cell in rows])
+        return np.array(set_values)
 
     def __repr__(self):
         return "EndViewBoard({}, {}, {}, {})".format(grid_size,
@@ -163,7 +163,7 @@ def solve(g_s, letter_set, t, b, l, r):
     letter_options = letter_options + letter_set
     board = EndViewBoard(constraints)
     print("\n####\n")
-    # print(pd.DataFrame(board.board_values))
+    print(pd.DataFrame(board.board_values))
 
     for (r, c, value) in board.all_cells():
         print(r, c, value)
@@ -178,6 +178,8 @@ def solve(g_s, letter_set, t, b, l, r):
             if cell.try_(option):
                 if board.check_cell(cell):
                     cell.set(option)
+                    print("cell.set({}): True".format(option))
+                    print("cell.value = ", cell.value, "\n\n")
                     break
                 option = value.pop()
     print(board)
