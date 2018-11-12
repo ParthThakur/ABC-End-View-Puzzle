@@ -102,17 +102,23 @@ class EndViewBoard(object):
         (r, c) = (cell.row, cell.column)
         x = grid_size - len(letter_options)
         try_value = cell.value_try
+        if try_value == 'nan':
+            return True
         row = board_fix_values[r]
         column = board_fix_values[:, c]
         status = [True]
 
         print(row, column, sep="\n")
+        print(self.bottom.constraints[c])
         if try_value in row or try_value in column:
             print("try value in row or column")
             status.append(False)
 
-        if 0 < r < grid_size:
+        if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
+                print("try value == top.constraint")
+                if r > 1:
+                    status.append(False)
                 if (board_fix_values[:, c][:r] == 'nan').all():
                     status.append(True)
                 else:
@@ -120,14 +126,20 @@ class EndViewBoard(object):
                     status.append(False)
 
             if try_value == self.bottom.constraints[c]:
+                print("try value == bottom.constraint")
+                if r < grid_size - 1:
+                    status.append(False)
                 if (board_fix_values[r + 1:][:, c] == 'nan').all():
                     status.append(True)
                 else:
                     print(try_value, "ke neeche not nan")
                     status.append(False)
 
-        if 0 < c < grid_size:
+        if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
+                print("try value == left.constraint")
+                if c > 1:
+                    status.append(False)
                 if (board_fix_values[r][:c] == 'nan').all():
                     status.append(True)
                 else:
@@ -135,10 +147,16 @@ class EndViewBoard(object):
                     status.append(False)
 
             if try_value == self.right.constraints[r]:
+                print("try value == right.constraint")
+                if c > grid_size - 1:
+                    status.append(False)
                 if (board_fix_values[r][c+1:] == 'nan').all():
                     status.append(True)
                 else:
                     print(try_value, "ke right mein not nan")
+                    status.append(False)
+            else:
+                if self.right.constraints[r] in board_fix_values[r][:c]:
                     status.append(False)
         print("board.check_cell({}): {}".format(try_value,
                                                 np.array(status).all()))
@@ -208,26 +226,19 @@ def solve(g_s, letter_set, t, b, l, r):
             if len(value) == 1:
                 cell.value = value[0]
                 continue
-
-            option = str(value.pop())
-            while 0 <= len(value):
+            option = value.pop()
+            while len(value) > 0:
                 print("try value:", option)
-                if option == 'nan':
-                    cell.set(option)
-                    print("cell.set({}): True".format(option))
-                    print("cell.value = ", cell.value, "\n")
-                    break
                 if cell.try_(option):
                     if board.check_cell(cell):
                         cell.set(option)
                         print("cell.set({}): True".format(option))
                         print("cell.value = ", cell.value, "\n")
                         break
-                    option = value.pop()
+                    else:
+                        option = value.pop()
         print("--- row {} done.".format(r), "\n\n")
-        if not board.check_row(r):
-            print("Something went wrong.")
-            break
+
     print("\n\n")
     for rows in board.board_current_state():
         unique, counts = np.unique(rows, return_counts=True)
