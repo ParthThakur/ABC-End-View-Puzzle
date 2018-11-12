@@ -7,21 +7,11 @@ letter_options = ['X']
 grid_size = 0
 
 
-def _make_cell(i, j):
-    """
-    Helper function for EndViewBoard.load_board().
-    Initializes each cell with 'X' as an option.
-    :return:
-    """
-    cell = Cell(i, j)
-    return cell
-
-
 def load_board():
 
     d_board = []
     for i in range(grid_size):
-        d_board.append([_make_cell(i, j) for j in range(grid_size)])
+        d_board.append([Cell(i, j) for j in range(grid_size)])
 
     df_board = np.array(d_board)
     # print(df_board)
@@ -37,19 +27,16 @@ class Cell(object):
         self.row = row
         self.column = column
 
-        self.value = ""
+        self.value = str(np.nan)
         self.value_try = ""
-        self.value_set = [np.nan]
+        self.value_set = [np.nan, *list('IRAGE')]
 
     def set_options(self, letter):
         if self.check(letter):
             self.value_set += letter
 
     def set(self, option):
-        if self.verify(option):
-            self.value = option
-            return True
-        return False
+        self.value = option
 
     def check(self, l):
         if not type(l) == str:
@@ -62,9 +49,9 @@ class Cell(object):
         return False
 
     def verify(self, option):
-        if len(option) == 1:
+        option = str(option)
+        if len(option) == 1 or option == 'nan':
             return True
-        self.value_set.remove(option)
         return False
 
     def try_(self, option):
@@ -94,16 +81,16 @@ class EndViewBoard(object):
         right = self.right.constraints[::-1]
         for cell in board[0]:
             x = top.pop()
-            cell.set_options(x if x else list('IRAGE'))
+            cell.set_options(x) if x else None
         for cell in board[grid_size - 1]:
             x = bot.pop()
-            cell.set_options(x if x else list('IRAGE'))
+            cell.set_options(x) if x else None
         for cell in board[:, 0]:
             x = left.pop()
-            cell.set_options(x if x else list('IRAGE'))
+            cell.set_options(x) if x else None
         for cell in board[:, grid_size - 1]:
             x = right.pop()
-            cell.set_options(x if x else list('IRAGE'))
+            cell.set_options(x) if x else None
         return board
 
     def all_cells(self):
@@ -111,18 +98,66 @@ class EndViewBoard(object):
                 for index, value in np.ndenumerate(self.board_values)])
 
     def check_cell(self, cell):
-        board_fix_values = self.board_fix_values()
-        r, c = cell.row, cell.column
+        board_fix_values = self.board_current_state()
+        (r, c) = (cell.row, cell.column)
         x = grid_size - len(letter_options)
         try_value = cell.value_try
         row = board_fix_values[r]
         column = board_fix_values[:, c]
+        status = [True]
+
         print(row, column, sep="\n")
         if try_value in row or try_value in column:
             print("try value in row or column")
-            print("board.check_cell({}): False".format(try_value))
+            status.append(False)
+
+        if 0 < r < grid_size:
+            if try_value == self.top.constraints[c]:
+                if (board_fix_values[:, c][:r] == 'nan').all():
+                    status.append(True)
+                else:
+                    print(try_value, "ke upar not nan")
+                    status.append(False)
+
+            if try_value == self.bottom.constraints[c]:
+                if (board_fix_values[r + 1:][:, c] == 'nan').all():
+                    status.append(True)
+                else:
+                    print(try_value, "ke neeche not nan")
+                    status.append(False)
+
+        if 0 < c < grid_size:
+            if try_value == self.left.constraints[r]:
+                if (board_fix_values[r][:c] == 'nan').all():
+                    status.append(True)
+                else:
+                    print(try_value, "ke left mein not nan")
+                    status.append(False)
+
+            if try_value == self.right.constraints[r]:
+                if (board_fix_values[r][c+1:] == 'nan').all():
+                    status.append(True)
+                else:
+                    print(try_value, "ke right mein not nan")
+                    status.append(False)
+        print("board.check_cell({}): {}".format(try_value,
+                                                np.array(status).all()))
+        return np.array(status).all()
+
+    def check_row(self, r):
+        row = self.board_current_state()[r]
+        unique, counts = np.unique(row, return_counts=True)
+        frequency = dict(zip(unique, counts))
+        if frequency['nan'] != 2:
+            print("Nan in row not equal to 2.")
             return False
-        print("board.check_cell({}): True".format(try_value))
+        if len(unique) < len(letter_options):
+            print("All letters not present in row.")
+            return False
+        if not sum(counts[:-1]) == len(counts[:-1]):
+            print("Duplicate letters present in row.")
+            return False
+
         return True
 
     def board_values(self):
@@ -131,7 +166,7 @@ class EndViewBoard(object):
             value_board.append([cell.value_set for cell in rows])
         return np.array(value_board)
 
-    def board_fix_values(self):
+    def board_current_state(self):
         set_values = []
         for rows in self.board:
             set_values.append([cell.value for cell in rows])
@@ -165,21 +200,39 @@ def solve(g_s, letter_set, t, b, l, r):
     print("\n####\n")
     print(pd.DataFrame(board.board_values))
 
-    for (r, c, value) in board.all_cells():
-        print(r, c, value)
-        cell = board.board[r][c]
-        if len(value) == 1:
-            cell.value = value[0]
-            continue
+    for r in range(grid_size):
+        for c in range(grid_size):
+            cell = board.board[r][c]
+            value = cell.value_set
+            print(r, c, value)
+            if len(value) == 1:
+                cell.value = value[0]
+                continue
 
-        option = value.pop()
-        while len(value) >= 0:
-            print("try value:", option)
-            if cell.try_(option):
-                if board.check_cell(cell):
+            option = str(value.pop())
+            while 0 <= len(value):
+                print("try value:", option)
+                if option == 'nan':
                     cell.set(option)
                     print("cell.set({}): True".format(option))
-                    print("cell.value = ", cell.value, "\n\n")
+                    print("cell.value = ", cell.value, "\n")
                     break
-                option = value.pop()
+                if cell.try_(option):
+                    if board.check_cell(cell):
+                        cell.set(option)
+                        print("cell.set({}): True".format(option))
+                        print("cell.value = ", cell.value, "\n")
+                        break
+                    option = value.pop()
+        print("--- row {} done.".format(r), "\n\n")
+        if not board.check_row(r):
+            print("Something went wrong.")
+            break
+    print("\n\n")
+    for rows in board.board_current_state():
+        unique, counts = np.unique(rows, return_counts=True)
+        print(unique, counts)
+
     print(board)
+    # print(pd.DataFrame(board.board_values))
+
