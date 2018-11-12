@@ -48,7 +48,8 @@ class Cell(object):
             return True
         return False
 
-    def verify(self, option):
+    @staticmethod
+    def verify(option):
         option = str(option)
         if len(option) == 1 or option == 'nan':
             return True
@@ -100,7 +101,7 @@ class EndViewBoard(object):
     def check_cell(self, cell):
         board_fix_values = self.board_current_state()
         (r, c) = (cell.row, cell.column)
-        x = grid_size - len(letter_options)
+        # x = grid_size - len(letter_options)
         try_value = cell.value_try
         if try_value == 'nan':
             return True
@@ -246,4 +247,3 @@ def solve(g_s, letter_set, t, b, l, r):
 
     print(board)
     # print(pd.DataFrame(board.board_values))
-
