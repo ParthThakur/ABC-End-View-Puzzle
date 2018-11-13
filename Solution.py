@@ -234,7 +234,7 @@ def cell_set_option(cell, board, value):
 
 
 def guess(board):
-    board_stack = [board]
+    board_stack = [copy.deepcopy(board)]
     while len(board_stack) > 0:
         for r in range(grid_size):
             for c in range(grid_size):
