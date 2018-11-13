@@ -234,22 +234,24 @@ def cell_set_option(cell, board, value):
 
 
 def guess(board):
-    board_stack = [copy.deepcopy(board)]
-    for r in range(grid_size):
-        for c in range(grid_size):
-            cell = board_stack[-1].board[r][c]
-            value = cell.value_set
-            print(r, c, value)
-            board_stack.append(copy.deepcopy(board))
-            if cell_set_option(cell, board, value):
-                continue
-            else:
-                print("Popping off a stack board.")
-                board_stack.pop()
+    board_stack = [board]
+    while len(board_stack) > 0:
+        for r in range(grid_size):
+            for c in range(grid_size):
+                cell = board_stack[-1].board[r][c]
+                value = cell.value_set
+                print(r, c, value)
+                if cell_set_option(cell, board_stack[-1], value):
+                    board_stack.append(copy.deepcopy(board_stack[-1]))
+                    continue
+                else:
+                    print("Popping off a stack board.")
+                    board_stack.pop()
 
-        print("--- row {} done.".format(r), "\n\n")
+            print("--- row {} done.".format(r), "\n\n")
 
-    return board_stack[-1]
+        return [True, board_stack.pop()]
+    return [False, board_stack.pop()]
 
 
 def solve(g_s, letter_set, t, b, l, r):
@@ -270,11 +272,15 @@ def solve(g_s, letter_set, t, b, l, r):
     solved_board = guess(board)
 
     print("\n\n")
-    for rows in solved_board.board_current_state():
-        unique, counts = np.unique(rows, return_counts=True)
-        print(unique, counts)
+    if solved_board[0]:
+        for rows in solved_board[1].board_current_state():
+            unique, counts = np.unique(rows, return_counts=True)
+            print(unique, counts)
+        print(solved_board[1], "\n\n")
 
-    print(board, "\n\n")
+    else:
+        print("A solution could not be found.")
+
     print("finished in", time.time() - start, "seconds")
     y = 0
     # for x in board_stack:
