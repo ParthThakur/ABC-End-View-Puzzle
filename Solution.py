@@ -108,7 +108,6 @@ class EndViewBoard(object):
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
-        status = [True]
 
         if try_value == 'nan':
             print("try value is nan")
@@ -124,65 +123,63 @@ class EndViewBoard(object):
         print(row, column, sep="\n")
         if try_value in row or try_value in column:
             print("try value in row or column")
-            status.append(False)
+            return False
 
         if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
                 print("try value == top.constraint")
                 if r > 2:
-                    status.append(False)
+                    return False
                 if (board_fix_values[:, c][:r] == 'nan').all():
-                    status.append(True)
+                    pass
                 else:
                     print(try_value, "ke upar not nan")
-                    status.append(False)
+                    return False
             else:
                 if self.top.constraints[c] != 0:
                     if set(column[:r]) == {'nan'}:
                         print("try value != top constraint and nan on top")
-                        status.append(False)
+                        return False
 
             if try_value == self.bottom.constraints[c]:
                 print("try value == bottom.constraint")
                 if r < grid_size - 2:
                     print(r, "<", grid_size-1)
-                    status.append(False)
+                    return False
                 if (board_fix_values[r + 1:][:, c] == 'nan').all():
-                    status.append(True)
+                    pass
                 else:
                     print(try_value, "ke neeche not nan")
-                    status.append(False)
+                    return False
 
         if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
                 print("try value == left.constraint")
                 if c > 2:
-                    status.append(False)
+                    return False
                 if (board_fix_values[r][:c] == 'nan').all():
-                    status.append(True)
+                    pass
                 else:
                     print(try_value, "ke left mein not nan")
-                    status.append(False)
+                    return False
             else:
                 if self.left.constraints[c] != 0:
                     if set(row[:c]) == {'nan'}:
                         print("try value != left constraint an no nan on left")
-                        status.append(False)
+                        return False
 
             if try_value == self.right.constraints[r]:
                 print("try value == right.constraint")
                 if c < grid_size - 3:
                     print(c, "<", grid_size-3)
-                    status.append(False)
+                    return False
                 if (board_fix_values[r][c+1:] == 'nan').all():
-                    status.append(True)
+                    pass
                 else:
                     print(try_value, "ke right mein not nan")
-                    status.append(False)
-
-        print("board.check_cell({}): {}".format(try_value,
-                                                np.array(status).all()))
-        return np.array(status).all()
+                    return False
+                
+        return True
 
     def check_row(self, r):
         row = self.board_current_state()[r]
@@ -300,10 +297,3 @@ def solve(g_s, letter_set, t, b, l, r):
         print("A solution could not be found.")
 
     print("finished in", time.time() - start, "seconds")
-    y = 0
-    # for x in board_stack:
-    #     y += 1
-    #     print("Stack", y)
-    #     print(x)
-    #     print("--------")
-    # print(pd.DataFrame(board.board_values))
