@@ -178,22 +178,6 @@ class EndViewBoard(object):
                 else:
                     print(try_value, "ke right mein not nan")
                     return False
-                
-        return True
-
-    def check_row(self, r):
-        row = self.board_current_state()[r]
-        unique, counts = np.unique(row, return_counts=True)
-        frequency = dict(zip(unique, counts))
-        if frequency['nan'] != 2:
-            print("Nan in row not equal to 2.")
-            return False
-        if len(unique) < len(letter_options):
-            print("All letters not present in row.")
-            return False
-        if not sum(counts[:-1]) == len(counts[:-1]):
-            print("Duplicate letters present in row.")
-            return False
 
         return True
 
