@@ -104,16 +104,16 @@ class EndViewBoard(object):
     def check_cell(self, cell, letter):
         board_fix_values = self.board_current_state()
         (r, c) = (cell.row, cell.column)
-        # x = grid_size - len(letter_options)
+        x = grid_size - len(letter_options) + 1
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
 
         if try_value == 'nan':
             print("try value is nan")
-            if sum(row[:c] == 'nan') < 2:
+            if sum(row[:c] == 'nan') < x:
                 print("less than two nan in row")
-                if sum(column[:r] == 'nan') < 2:
+                if sum(column[:r] == 'nan') < x:
                     print("less than 2 nan in column")
                     return True
             else:
@@ -128,12 +128,9 @@ class EndViewBoard(object):
         if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
                 print("try value == top.constraint")
-                if r > 2:
+                if r > x:
                     return False
-                if (board_fix_values[:, c][:r] == 'nan').all():
-                    pass
-                else:
-                    print(try_value, "ke upar not nan")
+                if not (board_fix_values[:, c][:r] == 'nan').all():
                     return False
             else:
                 if self.top.constraints[c] != 0:
@@ -143,24 +140,21 @@ class EndViewBoard(object):
 
             if try_value == self.bottom.constraints[c]:
                 print("try value == bottom.constraint")
-                if r < grid_size - 2:
+                if r < grid_size - x:
                     print(r, "<", grid_size-1)
                     return False
-                if (board_fix_values[r + 1:][:, c] == 'nan').all():
-                    pass
-                else:
-                    print(try_value, "ke neeche not nan")
+                if not (board_fix_values[r + 1:][:, c] == 'nan').all():
+                    return False
+            else:
+                if self.bottom.constraints[c] in column:
                     return False
 
         if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
                 print("try value == left.constraint")
-                if c > 2:
+                if c > x:
                     return False
-                if (board_fix_values[r][:c] == 'nan').all():
-                    pass
-                else:
-                    print(try_value, "ke left mein not nan")
+                if not (board_fix_values[r][:c] == 'nan').all():
                     return False
             else:
                 if self.left.constraints[c] != 0:
@@ -170,15 +164,14 @@ class EndViewBoard(object):
 
             if try_value == self.right.constraints[r]:
                 print("try value == right.constraint")
-                if c < grid_size - 3:
-                    print(c, "<", grid_size-3)
+                if c < grid_size - 1 - x:
+                    print(c, "<", grid_size--1-x)
                     return False
-                if (board_fix_values[r][c+1:] == 'nan').all():
-                    pass
-                else:
-                    print(try_value, "ke right mein not nan")
+                if not (board_fix_values[r][c+1:] == 'nan').all():
                     return False
-                
+            else:
+                if self.right.constraints[r] in row:
+                    return False
         return True
 
     def check_row(self, r):
