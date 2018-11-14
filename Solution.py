@@ -18,7 +18,7 @@ def load_board():
         d_board.append([Cell(i, j) for j in range(grid_size)])
 
     df_board = np.array(d_board)
-    # print(df_board)
+#     # print(df_board)
     return df_board
 
 
@@ -39,7 +39,7 @@ class Cell(object):
             self.value_set += letter
 
     def set(self, option):
-        print("cell.value =", option)
+        # print("cell.value =", option)
         self.value = option
 
     def check(self, l):
@@ -108,76 +108,95 @@ class EndViewBoard(object):
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
+        status = [True]
 
         if try_value == 'nan':
-            print("try value is nan")
+            # print("try value is nan")
             if sum(row[:c] == 'nan') < 2:
-                print("less than two nan in row")
+                # print("less than two nan in row")
                 if sum(column[:r] == 'nan') < 2:
-                    print("less than 2 nan in column")
+                    # print("less than 2 nan in column")
                     return True
             else:
-                print("already two nan in row or column.")
+                # print("already two nan in row or column.")
                 return False
 
-        print(row, column, sep="\n")
+        # print(row, column, sep="\n")
         if try_value in row or try_value in column:
-            print("try value in row or column")
-            return False
+            # print("try value in row or column")
+            status.append(False)
 
         if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
-                print("try value == top.constraint")
+                # print("try value == top.constraint")
                 if r > 2:
-                    return False
+                    status.append(False)
                 if (board_fix_values[:, c][:r] == 'nan').all():
-                    pass
+                    status.append(True)
                 else:
-                    print(try_value, "ke upar not nan")
-                    return False
+                    # print(try_value, "ke upar not nan")
+                    status.append(False)
             else:
                 if self.top.constraints[c] != 0:
                     if set(column[:r]) == {'nan'}:
-                        print("try value != top constraint and nan on top")
-                        return False
+                        # print("try value != top constraint and nan on top")
+                        status.append(False)
 
             if try_value == self.bottom.constraints[c]:
-                print("try value == bottom.constraint")
+                # print("try value == bottom.constraint")
                 if r < grid_size - 2:
-                    print(r, "<", grid_size-1)
-                    return False
+                    # print(r, "<", grid_size-1)
+                    status.append(False)
                 if (board_fix_values[r + 1:][:, c] == 'nan').all():
-                    pass
+                    status.append(True)
                 else:
-                    print(try_value, "ke neeche not nan")
-                    return False
+                    # print(try_value, "ke neeche not nan")
+                    status.append(False)
 
         if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
-                print("try value == left.constraint")
+                # print("try value == left.constraint")
                 if c > 2:
-                    return False
+                    status.append(False)
                 if (board_fix_values[r][:c] == 'nan').all():
-                    pass
+                    status.append(True)
                 else:
-                    print(try_value, "ke left mein not nan")
-                    return False
+                    # print(try_value, "ke left mein not nan")
+                    status.append(False)
             else:
                 if self.left.constraints[c] != 0:
                     if set(row[:c]) == {'nan'}:
-                        print("try value != left constraint an no nan on left")
-                        return False
+                        # print("try value != left constraint an no nan on left")
+                        status.append(False)
 
             if try_value == self.right.constraints[r]:
-                print("try value == right.constraint")
+                # print("try value == right.constraint")
                 if c < grid_size - 3:
-                    print(c, "<", grid_size-3)
-                    return False
+                    # print(c, "<", grid_size-3)
+                    status.append(False)
                 if (board_fix_values[r][c+1:] == 'nan').all():
-                    pass
+                    status.append(True)
                 else:
-                    print(try_value, "ke right mein not nan")
-                    return False
+                    # print(try_value, "ke right mein not nan")
+                    status.append(False)
+
+        # print("board.check_cell({}): {}".format(try_value,
+                                                np.array(status).all()))
+        return np.array(status).all()
+
+    def check_row(self, r):
+        row = self.board_current_state()[r]
+        unique, counts = np.unique(row, return_counts=True)
+        frequency = dict(zip(unique, counts))
+        if frequency['nan'] != 2:
+            # print("Nan in row not equal to 2.")
+            return False
+        if len(unique) < len(letter_options):
+            # print("All letters not present in row.")
+            return False
+        if not sum(counts[:-1]) == len(counts[:-1]):
+            # print("Duplicate letters present in row.")
+            return False
 
         return True
 
@@ -213,10 +232,10 @@ def cell_set_option(cell, board):
         letter = value.pop()
     except IndexError:
         return False
-    print("try value:", letter)
+    # print("try value:", letter)
     if board.check_cell(cell, letter):
         cell.set(letter)
-        print()
+        # print()
         return True
     else:
         if len(value) > 0:
@@ -233,21 +252,21 @@ def guess(board):
                     col = c
                     while col <= c:
                         cell = board_stack[-1].board[row][col]
-                        print(row, col, cell.value_set)
+                        # print(row, col, cell.value_set)
                         if cell_set_option(cell, board_stack[-1]):
                             board_stack.append(copy.deepcopy(board_stack[-1]))
                             col += 1
                             continue
                         else:
-                            print("\nPopping off a stack board.")
+                            # print("\nPopping off a stack board.")
                             col -= 1
                             if col < 0:
                                 row -= 1
                                 col = grid_size - 1
                             board_stack.pop()
                 row += 1
-            print([x for x in board_stack[-1].board[r]])
-            print("--- row {} done.".format(r), "\n\n")
+            # print([x for x in board_stack[-1].board[r]])
+            # print("--- row {} done.".format(r), "\n\n")
 
         return [True, board_stack.pop()]
     return [False, board_stack.pop()]
@@ -265,19 +284,26 @@ def solve(g_s, letter_set, t, b, l, r):
     letter_options = letter_options + letter_set
     board = EndViewBoard(constraints)
 
-    print("\n####\n")
-    print(pd.DataFrame(board.board_values))
+    # print("\n####\n")
+    # print(pd.DataFrame(board.board_values))
 
     solved_board = guess(board)
 
-    print("\n\n")
+    # print("\n\n")
     if solved_board[0]:
         for rows in solved_board[1].board_current_state():
             unique, counts = np.unique(rows, return_counts=True)
-            print(unique, counts)
-        print(solved_board[1], "\n\n")
+        #     print(unique, counts)
+        # print(solved_board[1], "\n\n")
 
     else:
         print("A solution could not be found.")
 
-    print("finished in", time.time() - start, "seconds")
+    # print("finished in", time.time() - start, "seconds")
+    y = 0
+    # for x in board_stack:
+    #     y += 1
+#     #     print("Stack", y)
+#     #     print(x)
+#     #     print("--------")
+#     # print(pd.DataFrame(board.board_values))
