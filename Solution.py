@@ -219,7 +219,7 @@ class EndViewBoard(object):
 def cell_set_option(cell, board):
     value = cell.value_set
     try:
-        letter = value.pop()
+        letter = value.pop(0)
     except IndexError:
         return False
     print("try value:", letter)
@@ -234,6 +234,7 @@ def cell_set_option(cell, board):
 
 def guess(board):
     board_stack = [copy.deepcopy(board)]
+    best_solution = board_stack[-1]
     cell_index = []
     while len(board_stack) > 0:
         for r in range(grid_size):
@@ -249,6 +250,7 @@ def guess(board):
                         print(row, col, cell.value_set)
                         if cell_set_option(cell, board_stack[-1]):
                             board_stack.append(copy.deepcopy(board_stack[-1]))
+                            best_solution = board_stack[-1]
                             cell_index.append(((r, c), (row, col), "True"))
                             col += 1
                             continue
@@ -262,14 +264,13 @@ def guess(board):
                         if row < 0:
                             for x in cell_index:
                                 print(x)
-                            exit(123)
+                            return [False, best_solution]
                 row += 1
 
             print([x for x in board_stack[-1].board[r]])
             print("--- row {} done.".format(r), "\n\n")
 
-        return [True, board_stack.pop()]
-    return [False, board_stack.pop()]
+        return [True, best_solution]
 
 
 def solve(g_s, letter_set, t, b, l, r):
@@ -289,14 +290,15 @@ def solve(g_s, letter_set, t, b, l, r):
 
     solved_board = guess(board)
 
-    print("\n\n")
     if solved_board[0]:
         for rows in solved_board[1].board_current_state():
             unique, counts = np.unique(rows, return_counts=True)
             print(unique, counts)
-        print(solved_board[1], "\n\n")
+        print(solved_board[1], "\n")
 
     else:
         print("A solution could not be found.")
+        print("The best case solution is:")
+        print(solved_board[1], "\n")
 
-    print("finished in", time.time() - start, "seconds")
+    print("Solved in", time.time() - start, "seconds.")
