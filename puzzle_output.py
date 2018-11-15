@@ -1,7 +1,7 @@
 import pandas as pd
 from Solution import solve
 
-puzzle_input = pd.read_csv("puzzle_2.csv", header=None)
+puzzle_input = pd.read_csv("puzzle_input.csv", header=None)
 puzzle_input.replace('X', 0, inplace=True)
 
 print(puzzle_input, end="\n\n")

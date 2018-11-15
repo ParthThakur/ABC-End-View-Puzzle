@@ -140,8 +140,8 @@ class EndViewBoard(object):
 
             if try_value == self.bottom.constraints[c]:
                 print("try value == bottom.constraint")
-                if r < grid_size - x:
-                    print(r, "<", grid_size-1)
+                if r < grid_size - x - 1:
+                    print(r, "<", grid_size-x-1)
                     return False
                 if not (board_fix_values[r + 1:][:, c] == 'nan').all():
                     return False
@@ -253,11 +253,16 @@ def guess(board):
                             col += 1
                             continue
                         print("\nPopping off a stack board.")
+                        cell_index.append(((r, c), (row, col), "False"))
                         col -= 1
                         if col < 0:
                             row -= 1
                             col = grid_size - 1
                         board_stack.pop()
+                        if row < 0:
+                            for x in cell_index:
+                                print(x)
+                            exit(123)
                 row += 1
 
             print([x for x in board_stack[-1].board[r]])
