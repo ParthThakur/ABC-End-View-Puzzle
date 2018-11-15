@@ -76,10 +76,10 @@ class EndViewBoard(object):
         self.board_values = self.board_values()
 
     def get_initial_state(self, board):
-        top = self.top.constraints[::-1]
-        bot = self.bottom.constraints[::-1]
-        left = self.left.constraints[::-1]
-        right = self.right.constraints[::-1]
+        top = self.top[::-1]
+        bot = self.bottom[::-1]
+        left = self.left[::-1]
+        right = self.right[::-1]
         for cell in board[0]:
             x = top.pop()
             cell.set_options(x) if x else None
@@ -116,43 +116,43 @@ class EndViewBoard(object):
             return False
 
         if 0 <= r <= grid_size:
-            if try_value == self.top.constraints[c]:
+            if try_value == self.top[c]:
                 if r > self.no_nan:
                     return False
                 if not (board_fix_values[:, c][:r] == 'nan').all():
                     return False
             else:
-                if self.top.constraints[c] != 0:
+                if self.top[c] != 0:
                     if set(column[:r]) == {'nan'}:
                         return False
 
-            if try_value == self.bottom.constraints[c]:
+            if try_value == self.bottom[c]:
                 if r < grid_size - self.no_nan - 1:
                     return False
                 if not (board_fix_values[r + 1:][:, c] == 'nan').all():
                     return False
             else:
-                if self.bottom.constraints[c] in column.tolist():
+                if self.bottom[c] in column.tolist():
                     return False
 
         if 0 <= c <= grid_size:
-            if try_value == self.left.constraints[r]:
+            if try_value == self.left[r]:
                 if c > self.no_nan:
                     return False
                 if not (board_fix_values[r][:c] == 'nan').all():
                     return False
             else:
-                if self.left.constraints[r] != 0:
+                if self.left[r] != 0:
                     if set(row[:c]) == {'nan'}:
                         return False
 
-            if try_value == self.right.constraints[r]:
+            if try_value == self.right[r]:
                 if c < grid_size - 1 - self.no_nan:
                     return False
                 if not (board_fix_values[r][c+1:] == 'nan').all():
                     return False
             else:
-                if self.right.constraints[r] in row.tolist():
+                if self.right[r] in row.tolist():
                     return False
         return True
 
