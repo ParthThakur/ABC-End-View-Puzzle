@@ -1,0 +1,8 @@
+0,1,2,3,4,5,6
+R,A,G,nan,nan,E,I
+G,E,nan,A,I,nan,R
+nan,nan,R,I,A,G,E
+E,G,I,nan,R,A,nan
+A,I,nan,E,nan,R,G
+I,R,A,G,E,nan,nan
+nan,nan,E,R,G,I,A

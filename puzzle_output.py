@@ -32,4 +32,11 @@ bottom = Constraints(puzzle_input.T[3].tolist())
 left = Constraints(puzzle_input.T[4].tolist())
 right = Constraints(puzzle_input.T[5].tolist())
 
-solve(grid_size, letter_set, top, bottom, left, right)
+solution = solve(grid_size, letter_set, top, bottom, left, right)
+
+if solution[0]:
+    name = "puzzle_output.csv"
+else:
+    name = "puzzle_output_(bestCase).csv"
+
+solution[1].fillna('X').to_csv(name, index=False)

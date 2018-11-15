@@ -69,6 +69,7 @@ class EndViewBoard(object):
 
     def __init__(self, constraints):
         self.top, self.bottom, self.left, self.right = constraints
+        self.no_nan = grid_size - len(letter_options)
 
         self.board = load_board()
         self.board = self.get_initial_state(self.board)
@@ -100,14 +101,13 @@ class EndViewBoard(object):
     def check_cell(self, cell, letter):
         board_fix_values = self.board_current_state()
         (r, c) = (cell.row, cell.column)
-        x = grid_size - len(letter_options)
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
 
         if try_value == 'nan':
-            if sum(row[:c] == 'nan') < x:
-                if sum(column[:r] == 'nan') < x:
+            if sum(row[:c] == 'nan') < self.no_nan:
+                if sum(column[:r] == 'nan') < self.no_nan:
                     return True
             else:
                 return False
@@ -117,7 +117,7 @@ class EndViewBoard(object):
 
         if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
-                if r > x:
+                if r > self.no_nan:
                     return False
                 if not (board_fix_values[:, c][:r] == 'nan').all():
                     return False
@@ -127,17 +127,17 @@ class EndViewBoard(object):
                         return False
 
             if try_value == self.bottom.constraints[c]:
-                if r < grid_size - x - 1:
+                if r < grid_size - self.no_nan - 1:
                     return False
                 if not (board_fix_values[r + 1:][:, c] == 'nan').all():
                     return False
             else:
-                if self.bottom.constraints[c] in column:
+                if self.bottom.constraints[c] in column.tolist():
                     return False
 
         if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
-                if c > x:
+                if c > self.no_nan:
                     return False
                 if not (board_fix_values[r][:c] == 'nan').all():
                     return False
@@ -147,12 +147,12 @@ class EndViewBoard(object):
                         return False
 
             if try_value == self.right.constraints[r]:
-                if c < grid_size - 1 - x:
+                if c < grid_size - 1 - self.no_nan:
                     return False
                 if not (board_fix_values[r][c+1:] == 'nan').all():
                     return False
             else:
-                if self.right.constraints[r] in row:
+                if self.right.constraints[r] in row.tolist():
                     return False
         return True
 
@@ -176,10 +176,7 @@ class EndViewBoard(object):
                                                      self.right)
 
     def __str__(self):
-        disp_board = []
-        for rows in self.board:
-            disp_board.append([cell.value for cell in rows])
-        return pd.DataFrame(disp_board).to_string()
+        return pd.DataFrame(self.board_current_state()).to_string()
 
 
 def cell_set_option(cell, board):
@@ -221,9 +218,11 @@ def guess(board):
                             col = grid_size - 1
                         board_stack.pop()
                         if row < 0:
-                            return [False, best_solution]
+                            return [False,
+                                    pd.DataFrame(best_solution.board_current_state())]
                 row += 1
-        return [True, best_solution]
+        return [True,
+                pd.DataFrame(best_solution.board_current_state())]
 
 
 def solve(g_s, letter_set, t, b, l, r):
@@ -241,15 +240,14 @@ def solve(g_s, letter_set, t, b, l, r):
     print("Solving...")
     solved_board = guess(board)
 
+    print("Solved in", time.time() - start, "seconds.")
     if solved_board[0]:
-        for rows in solved_board[1].board_current_state():
-            unique, counts = np.unique(rows, return_counts=True)
-            print(unique, counts)
         print(solved_board[1], "\n")
+        return solved_board
 
     else:
         print("A solution could not be found.")
         print("The best case solution is:")
         print(solved_board[1], "\n")
+        return solved_board
 
-    print("Solved in", time.time() - start, "seconds.")
