@@ -32,7 +32,7 @@ class Cell(object):
         self.column = column
 
         self.value = str(np.nan)
-        self.value_set = [np.nan, *list('IRAGE')]
+        self.value_set = [np.nan, *letter_options[1:]]
 
     def set_options(self, letter):
         if self.check(letter):
@@ -234,27 +234,32 @@ def cell_set_option(cell, board):
 
 def guess(board):
     board_stack = [copy.deepcopy(board)]
+    cell_index = []
     while len(board_stack) > 0:
         for r in range(grid_size):
             row = r
             while row <= r:
                 for c in range(grid_size):
                     col = c
-                    while col <= c:
+                    while col <= c or row < r:
+                        if col > grid_size - 1:
+                            col = 0
+                            row += 1
                         cell = board_stack[-1].board[row][col]
                         print(row, col, cell.value_set)
                         if cell_set_option(cell, board_stack[-1]):
                             board_stack.append(copy.deepcopy(board_stack[-1]))
+                            cell_index.append(((r, c), (row, col), "True"))
                             col += 1
                             continue
-                        else:
-                            print("\nPopping off a stack board.")
-                            col -= 1
-                            if col < 0:
-                                row -= 1
-                                col = grid_size - 1
-                            board_stack.pop()
+                        print("\nPopping off a stack board.")
+                        col -= 1
+                        if col < 0:
+                            row -= 1
+                            col = grid_size - 1
+                        board_stack.pop()
                 row += 1
+
             print([x for x in board_stack[-1].board[r]])
             print("--- row {} done.".format(r), "\n\n")
 
