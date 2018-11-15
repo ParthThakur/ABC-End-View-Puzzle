@@ -5,9 +5,7 @@ import time
 
 start = time.time()
 
-pd.set_option('display.max_columns', 500)
-
-letter_options = ['X']
+letter_options = []
 grid_size = 0
 
 
@@ -18,7 +16,6 @@ def load_board():
         d_board.append([Cell(i, j) for j in range(grid_size)])
 
     df_board = np.array(d_board)
-    # print(df_board)
     return df_board
 
 
@@ -32,14 +29,13 @@ class Cell(object):
         self.column = column
 
         self.value = str(np.nan)
-        self.value_set = [np.nan, *letter_options[1:]]
+        self.value_set = [np.nan, *letter_options]
 
     def set_options(self, letter):
         if self.check(letter):
             self.value_set += letter
 
     def set(self, option):
-        print("cell.value =", option)
         self.value = option
 
     def check(self, l):
@@ -104,30 +100,23 @@ class EndViewBoard(object):
     def check_cell(self, cell, letter):
         board_fix_values = self.board_current_state()
         (r, c) = (cell.row, cell.column)
-        x = grid_size - len(letter_options) + 1
+        x = grid_size - len(letter_options)
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
 
         if try_value == 'nan':
-            print("try value is nan")
             if sum(row[:c] == 'nan') < x:
-                print("less than two nan in row")
                 if sum(column[:r] == 'nan') < x:
-                    print("less than 2 nan in column")
                     return True
             else:
-                print("already two nan in row or column.")
                 return False
 
-        print(row, column, sep="\n")
         if try_value in row or try_value in column:
-            print("try value in row or column")
             return False
 
         if 0 <= r <= grid_size:
             if try_value == self.top.constraints[c]:
-                print("try value == top.constraint")
                 if r > x:
                     return False
                 if not (board_fix_values[:, c][:r] == 'nan').all():
@@ -135,13 +124,10 @@ class EndViewBoard(object):
             else:
                 if self.top.constraints[c] != 0:
                     if set(column[:r]) == {'nan'}:
-                        print("try value != top constraint and nan on top")
                         return False
 
             if try_value == self.bottom.constraints[c]:
-                print("try value == bottom.constraint")
                 if r < grid_size - x - 1:
-                    print(r, "<", grid_size-x-1)
                     return False
                 if not (board_fix_values[r + 1:][:, c] == 'nan').all():
                     return False
@@ -151,7 +137,6 @@ class EndViewBoard(object):
 
         if 0 <= c <= grid_size:
             if try_value == self.left.constraints[r]:
-                print("try value == left.constraint")
                 if c > x:
                     return False
                 if not (board_fix_values[r][:c] == 'nan').all():
@@ -159,35 +144,16 @@ class EndViewBoard(object):
             else:
                 if self.left.constraints[r] != 0:
                     if set(row[:c]) == {'nan'}:
-                        print("try value != left constraint and nan on left")
                         return False
 
             if try_value == self.right.constraints[r]:
-                print("try value == right.constraint")
                 if c < grid_size - 1 - x:
-                    print(c, "<", grid_size--1-x)
                     return False
                 if not (board_fix_values[r][c+1:] == 'nan').all():
                     return False
             else:
                 if self.right.constraints[r] in row:
                     return False
-        return True
-
-    def check_row(self, r):
-        row = self.board_current_state()[r]
-        unique, counts = np.unique(row, return_counts=True)
-        frequency = dict(zip(unique, counts))
-        if frequency['nan'] != 2:
-            print("Nan in row not equal to 2.")
-            return False
-        if len(unique) < len(letter_options):
-            print("All letters not present in row.")
-            return False
-        if not sum(counts[:-1]) == len(counts[:-1]):
-            print("Duplicate letters present in row.")
-            return False
-
         return True
 
     def board_values(self):
@@ -222,10 +188,8 @@ def cell_set_option(cell, board):
         letter = value.pop(0)
     except IndexError:
         return False
-    print("try value:", letter)
     if board.check_cell(cell, letter):
         cell.set(letter)
-        print()
         return True
     else:
         if len(value) > 0:
@@ -235,7 +199,6 @@ def cell_set_option(cell, board):
 def guess(board):
     board_stack = [copy.deepcopy(board)]
     best_solution = board_stack[-1]
-    cell_index = []
     while len(board_stack) > 0:
         for r in range(grid_size):
             row = r
@@ -247,29 +210,19 @@ def guess(board):
                             col = 0
                             row += 1
                         cell = board_stack[-1].board[row][col]
-                        print(row, col, cell.value_set)
                         if cell_set_option(cell, board_stack[-1]):
                             board_stack.append(copy.deepcopy(board_stack[-1]))
                             best_solution = board_stack[-1]
-                            cell_index.append(((r, c), (row, col), "True"))
                             col += 1
                             continue
-                        print("\nPopping off a stack board.")
-                        cell_index.append(((r, c), (row, col), "False"))
                         col -= 1
                         if col < 0:
                             row -= 1
                             col = grid_size - 1
                         board_stack.pop()
                         if row < 0:
-                            for x in cell_index:
-                                print(x)
                             return [False, best_solution]
                 row += 1
-
-            print([x for x in board_stack[-1].board[r]])
-            print("--- row {} done.".format(r), "\n\n")
-
         return [True, best_solution]
 
 
@@ -285,9 +238,7 @@ def solve(g_s, letter_set, t, b, l, r):
     letter_options = letter_options + letter_set
     board = EndViewBoard(constraints)
 
-    print("\n####\n")
-    print(pd.DataFrame(board.board_values))
-
+    print("Solving...")
     solved_board = guess(board)
 
     if solved_board[0]:
