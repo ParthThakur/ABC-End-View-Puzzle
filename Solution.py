@@ -157,9 +157,9 @@ class EndViewBoard(object):
                 if not (board_fix_values[r][:c] == 'nan').all():
                     return False
             else:
-                if self.left.constraints[c] != 0:
+                if self.left.constraints[r] != 0:
                     if set(row[:c]) == {'nan'}:
-                        print("try value != left constraint an no nan on left")
+                        print("try value != left constraint and nan on left")
                         return False
 
             if try_value == self.right.constraints[r]:
