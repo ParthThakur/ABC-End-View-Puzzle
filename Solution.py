@@ -1,15 +1,20 @@
 import pandas as pd
 import numpy as np
 import copy
-import time
+from time import time
 
-start = time.time()
+start = time()
 
 letter_options = []
 grid_size = 0
 
 
 def load_board():
+    """
+    Function initializes individual boxes on the board with NaN values and it's
+    position on the board.
+    :return: NumPy array of Cell objects.
+    """
 
     d_board = []
     for i in range(grid_size):
@@ -21,10 +26,15 @@ def load_board():
 
 class Cell(object):
     """
-    Cell object for individual cells on the board.
+    Cell object for individual boxes on the board.
     """
 
     def __init__(self, row, column):
+        """
+        Initializes cells with index and NaN values.
+        :param row: Row index
+        :param column: Column Index
+        """
         self.row = row
         self.column = column
 
@@ -32,13 +42,28 @@ class Cell(object):
         self.value_set = [np.nan, *letter_options]
 
     def set_options(self, letter):
+        """
+        Set value options for cell.
+        :param letter: List of options.
+        :return: None
+        """
         if self.check(letter):
             self.value_set += letter
 
     def set(self, option):
+        """
+        Set the value of cell.
+        :param option: Value to be set.
+        :return: None
+        """
         self.value = option
 
     def check(self, l):
+        """
+        Check if the all values in the set are string.
+        :param l: List of options.
+        :return: True if OK, False if not.
+        """
         if not type(l) == str:
             pass
         elif l:
@@ -48,34 +73,30 @@ class Cell(object):
             return True
         return False
 
-    @staticmethod
-    def verify(option):
-        option = str(option)
-        if len(option) == 1 or option == 'nan':
-            return True
-        return False
-
-    def __repr__(self):
-        return str(self.value)
-
-    def __add__(self, other):
-        raise Exception("Don't try to add two cells.")
-
 
 class EndViewBoard(object):
     """
-    Board is the entire board for the game with a size of "grid_size".
+    Class for the entire puzzle. Creates a numpy array of individual boxes
+    arranged in a matrix of size "grid_size".
     """
 
     def __init__(self, constraints):
+        """
+        Initialize Board of the puzzle.
+        :param constraints: List of all constraints.
+        """
         self.top, self.bottom, self.left, self.right = constraints
         self.no_nan = grid_size - len(letter_options)
 
         self.board = load_board()
         self.board = self.get_initial_state(self.board)
-        self.board_values = self.board_values()
 
     def get_initial_state(self, board):
+        """
+        Set values options of cells based on constraints.
+        :param board: NumPy array of cells on the board.
+        :return: NumPy array with initial values set.
+        """
         top = self.top[::-1]
         bot = self.bottom[::-1]
         left = self.left[::-1]
@@ -94,17 +115,22 @@ class EndViewBoard(object):
             cell.set_options(x) if x else None
         return board
 
-    def all_cells(self):
-        return ([(*index, value)
-                for index, value in np.ndenumerate(self.board_values)])
-
     def check_cell(self, cell, letter):
+        """
+        Checks the value of the given cell.
+        :param cell: Cell object to be checked.
+        :param letter: Value of cell to check.
+        :return: True if OK, False if not.
+        """
         board_fix_values = self.board_current_state()
         (r, c) = (cell.row, cell.column)
         try_value = str(letter)
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
 
+        # Check if value is nan.
+        # If nan, return True only if the number of NaNs in row or column are
+        # acceptable.
         if try_value == 'nan':
             if sum(row[:c] == 'nan') < self.no_nan:
                 if sum(column[:r] == 'nan') < self.no_nan:
@@ -112,10 +138,17 @@ class EndViewBoard(object):
             else:
                 return False
 
+        # If letter already exists in row ar column, return False.
         if try_value in row or try_value in column:
             return False
 
+        # Check entire Row.
         if 0 <= r <= grid_size:
+
+            # If option is equal to top constraint, return true only if NaN
+            # above of cell.
+            # Also check if row index is permissible. i.e Cell is not too far
+            # down, making other cells in row invalid.
             if try_value == self.top[c]:
                 if r > self.no_nan:
                     return False
@@ -126,6 +159,10 @@ class EndViewBoard(object):
                     if set(column[:r]) == {'nan'}:
                         return False
 
+            # If option is equal to bottom constraint, return true only if NaN
+            # below cell.
+            # Also check if row index is permissible. i.e Cell is not too far
+            # up, making other cells in row invalid.
             if try_value == self.bottom[c]:
                 if r < grid_size - self.no_nan - 1:
                     return False
@@ -135,7 +172,13 @@ class EndViewBoard(object):
                 if self.bottom[c] in column.tolist():
                     return False
 
+        # Check entire Column
         if 0 <= c <= grid_size:
+
+            # If option is equal to left constraint, return true only if NaN
+            # on left of the cell.
+            # Also check if column index is permissible. i.e Cell is not too far
+            # right, making other cells in row invalid.
             if try_value == self.left[r]:
                 if c > self.no_nan:
                     return False
@@ -146,6 +189,10 @@ class EndViewBoard(object):
                     if set(row[:c]) == {'nan'}:
                         return False
 
+            # If option is equal to right constraint, return true only if NaN
+            # on right of the cell.
+            # Also check if column index is permissible. i.e Cell is not too far
+            # left, making other cells in row invalid.
             if try_value == self.right[r]:
                 if c < grid_size - 1 - self.no_nan:
                     return False
@@ -156,30 +203,27 @@ class EndViewBoard(object):
                     return False
         return True
 
-    def board_values(self):
-        value_board = []
-        for rows in self.board:
-            value_board.append([cell.value_set for cell in rows])
-        return np.array(value_board)
-
     def board_current_state(self):
+        """
+        :return: NumPy array of current values of individual cells.
+        """
         set_values = []
         for rows in self.board:
             set_values.append([cell.value for cell in rows])
         return np.array(set_values)
 
     def __repr__(self):
-        return "EndViewBoard({}, {}, {}, {})".format(grid_size,
-                                                     self.top,
-                                                     self.bottom,
-                                                     self.left,
-                                                     self.right)
-
-    def __str__(self):
         return pd.DataFrame(self.board_current_state()).to_string()
 
 
 def cell_set_option(cell, board):
+    """
+    Sets the value of the given cell.
+    Goes through all possible values for the cell.
+    :param cell: Cell object to set the value of.
+    :param board: Latest puzzle board in Solution stack.
+    :return: True if value is valid. False if none are.
+    """
     value = cell.value_set
     try:
         letter = value.pop(0)
@@ -194,8 +238,15 @@ def cell_set_option(cell, board):
 
 
 def guess(board):
+    """
+    Implements Deep First Search on the entire board.
+    :param board: Puzzle board.
+    :return: Best possible solution for the puzzle.
+             True if complete, False if incomplete.
+    """
     board_stack = [copy.deepcopy(board)]
     best_solution = board_stack[-1]
+
     while len(board_stack) > 0:
         for r in range(grid_size):
             row = r
@@ -218,14 +269,22 @@ def guess(board):
                             col = grid_size - 1
                         board_stack.pop()
                         if row < 0:
-                            return [False,
-                                    pd.DataFrame(best_solution.board_current_state())]
+                            return [False, best_solution]
                 row += 1
-        return [True,
-                pd.DataFrame(best_solution.board_current_state())]
+        return [True, best_solution]
 
 
 def solve(g_s, letter_set, t, b, l, r):
+    """
+    Function returns the solution to given puzzle.
+    :param g_s: Grid Size.
+    :param letter_set: Set of letters to be used.
+    :param t: Top Constraints.
+    :param b: Bottom Constraints.
+    :param l: Left Constraints.
+    :param r: Right Constraints.
+    :return: Pandas Dataframe of solution.
+    """
     global letter_options
     global grid_size
     grid_size = g_s
@@ -240,7 +299,7 @@ def solve(g_s, letter_set, t, b, l, r):
     print("Solving...")
     solved_board = guess(board)
 
-    print("Solved in", time.time() - start, "seconds.")
+    print("Solved in", time() - start, "seconds.")
     if solved_board[0]:
         print(solved_board[1], "\n")
         return solved_board
@@ -250,4 +309,3 @@ def solve(g_s, letter_set, t, b, l, r):
         print("The best case solution is:")
         print(solved_board[1], "\n")
         return solved_board
-

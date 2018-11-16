@@ -20,4 +20,8 @@ if solution[0]:
 else:
     name = "puzzle_output_(bestCase).csv"
 
-solution[1].fillna('X').to_csv(name, index=False)
+df = pd.DataFrame(solution[1].board_current_state())
+df.replace('nan', 'X').to_csv(name, header=False, index=False)
+
+print("The solution was saved in puzzle_output.csv")
+input("Press any key to exit.")
