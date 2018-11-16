@@ -5,9 +5,9 @@ __author__ = "Parth Thakur"
 __email__ = "parththakur@gmail.com"
 
 import pandas as pd
-from Solution import solve
+from DFS import solve
 
-puzzle_input = pd.read_csv("puzzle_input.csv", header=None)
+puzzle_input = pd.read_csv("test puzzles/puzzle_1.csv", header=None)
 puzzle_input.replace('X', 0, inplace=True)
 
 print(puzzle_input, end="\n\n")
