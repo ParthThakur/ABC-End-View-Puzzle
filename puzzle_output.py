@@ -1,3 +1,9 @@
+"""
+An ABC End View puzzle solver using Deep First Search.
+"""
+__author__ = "Parth Thakur"
+__email__ = "parththakur@gmail.com"
+
 import pandas as pd
 from Solution import solve
 
@@ -21,7 +27,7 @@ else:
     name = "puzzle_output_(bestCase).csv"
 
 df = pd.DataFrame(solution[1].board_current_state())
-df.replace('nan', 'X').to_csv(name, header=False, index=False)
+df.replace(' ', 'X').to_csv(name, header=False, index=False)
 
 print("The solution was saved in puzzle_output.csv")
 input("Press any key to exit.")

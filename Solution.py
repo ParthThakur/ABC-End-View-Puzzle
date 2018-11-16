@@ -1,3 +1,9 @@
+"""
+Implements the DFS algorithm on given puzzle.
+' ' (<space>) implies an empty cell, which is also 'X' in most representations
+of this puzzle.
+"""
+
 import pandas as pd
 import numpy as np
 import copy
@@ -11,7 +17,7 @@ grid_size = 0
 
 def load_board():
     """
-    Function initializes individual boxes on the board with NaN values and it's
+    Function initializes individual boxes on the board with ' ' values and it's
     position on the board.
     :return: NumPy array of Cell objects.
     """
@@ -31,15 +37,15 @@ class Cell(object):
 
     def __init__(self, row, column):
         """
-        Initializes cells with index and NaN values.
+        Initializes cells with index and ' ' values.
         :param row: Row index
         :param column: Column Index
         """
         self.row = row
         self.column = column
 
-        self.value = str(np.nan)
-        self.value_set = [np.nan, *letter_options]
+        self.value = str(' ')
+        self.value_set = [' ', *letter_options]
 
     def set_options(self, letter):
         """
@@ -128,12 +134,12 @@ class EndViewBoard(object):
         row = np.delete(board_fix_values[r], c)
         column = np.delete(board_fix_values[:, c], r)
 
-        # Check if value is nan.
-        # If nan, return True only if the number of NaNs in row or column are
+        # Check if value is ' '.
+        # If ' ', return True only if the number of NaNs in row or column are
         # acceptable.
-        if try_value == 'nan':
-            if sum(row[:c] == 'nan') < self.no_nan:
-                if sum(column[:r] == 'nan') < self.no_nan:
+        if try_value == ' ':
+            if sum(row[:c] == ' ') < self.no_nan:
+                if sum(column[:r] == ' ') < self.no_nan:
                     return True
             else:
                 return False
@@ -145,28 +151,28 @@ class EndViewBoard(object):
         # Check entire Row.
         if 0 <= r <= grid_size:
 
-            # If option is equal to top constraint, return true only if NaN
+            # If option is equal to top constraint, return true only if ' '
             # above of cell.
             # Also check if row index is permissible. i.e Cell is not too far
             # down, making other cells in row invalid.
             if try_value == self.top[c]:
                 if r > self.no_nan:
                     return False
-                if not (board_fix_values[:, c][:r] == 'nan').all():
+                if not (board_fix_values[:, c][:r] == ' ').all():
                     return False
             else:
                 if self.top[c] != 0:
-                    if set(column[:r]) == {'nan'}:
+                    if set(column[:r]) == {' '}:
                         return False
 
-            # If option is equal to bottom constraint, return true only if NaN
+            # If option is equal to bottom constraint, return true only if ' '
             # below cell.
             # Also check if row index is permissible. i.e Cell is not too far
             # up, making other cells in row invalid.
             if try_value == self.bottom[c]:
                 if r < grid_size - self.no_nan - 1:
                     return False
-                if not (board_fix_values[r + 1:][:, c] == 'nan').all():
+                if not (board_fix_values[r + 1:][:, c] == ' ').all():
                     return False
             else:
                 if self.bottom[c] in column.tolist():
@@ -175,28 +181,28 @@ class EndViewBoard(object):
         # Check entire Column
         if 0 <= c <= grid_size:
 
-            # If option is equal to left constraint, return true only if NaN
+            # If option is equal to left constraint, return true only if ' '
             # on left of the cell.
             # Also check if column index is permissible. i.e Cell is not too far
             # right, making other cells in row invalid.
             if try_value == self.left[r]:
                 if c > self.no_nan:
                     return False
-                if not (board_fix_values[r][:c] == 'nan').all():
+                if not (board_fix_values[r][:c] == ' ').all():
                     return False
             else:
                 if self.left[r] != 0:
-                    if set(row[:c]) == {'nan'}:
+                    if set(row[:c]) == {' '}:
                         return False
 
-            # If option is equal to right constraint, return true only if NaN
+            # If option is equal to right constraint, return true only if ' '
             # on right of the cell.
             # Also check if column index is permissible. i.e Cell is not too far
             # left, making other cells in row invalid.
             if try_value == self.right[r]:
                 if c < grid_size - 1 - self.no_nan:
                     return False
-                if not (board_fix_values[r][c+1:] == 'nan').all():
+                if not (board_fix_values[r][c+1:] == ' ').all():
                     return False
             else:
                 if self.right[r] in row.tolist():
@@ -247,6 +253,7 @@ def guess(board):
     board_stack = [copy.deepcopy(board)]
     best_solution = board_stack[-1]
 
+    # DFS Implementation.
     while len(board_stack) > 0:
         for r in range(grid_size):
             row = r
@@ -267,9 +274,10 @@ def guess(board):
                         if col < 0:
                             row -= 1
                             col = grid_size - 1
-                        board_stack.pop()
-                        if row < 0:
+                        if row < 0 or not len(board_stack) > 0:
                             return [False, best_solution]
+                        board_stack.pop()
+
                 row += 1
         return [True, best_solution]
 
