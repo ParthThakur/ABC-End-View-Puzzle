@@ -94,7 +94,7 @@ class EndViewBoard(object):
         self.top, self.bottom, self.left, self.right = constraints
         self.no_nan = grid_size - len(letter_options)
 
-        self.board = load_board()
+        self.board = load_board()  # Numpy array of cell objects.
         self.board = self.get_initial_state(self.board)
 
     def get_initial_state(self, board):
@@ -120,6 +120,23 @@ class EndViewBoard(object):
             x = right.pop()
             cell.set_options(x) if x else None
         return board
+
+    def remove_options(self, r, c):
+        letter = self.board[r][c].value
+        row = self.board[r][c+1:]
+        column = self.board[:, c][r+1:]
+
+        for box in row:
+            try:
+                box.value_set.remove(letter)
+            except ValueError:
+                pass
+        for box in column:
+            try:
+                box.value_set.remove(letter)
+            except ValueError:
+                pass
+        return None
 
     def check_cell(self, cell, letter):
         """
@@ -267,6 +284,7 @@ def guess(board):
                         cell = board_stack[-1].board[row][col]
                         if cell_set_option(cell, board_stack[-1]):
                             board_stack.append(copy.deepcopy(board_stack[-1]))
+                            board_stack[-1].remove_options(row, col)
                             best_solution = board_stack[-1]
                             col += 1
                             continue

@@ -32,6 +32,6 @@ else:
 output_path = "test_output\\"+name+puzzle_no+".csv"
 
 df = pd.DataFrame(solution[1].board_current_state())
-df.replace(' ', 'X').to_csv(output_path, header=False, index=False)
+# df.replace(' ', 'X').to_csv(output_path, header=False, index=False)
 
 print("The solution was saved in", output_path)
