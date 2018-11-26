@@ -6,9 +6,9 @@ __email__ = "parththakur@gmail.com"
 
 import pandas as pd
 from DFS import solve
+from time import time
 
-
-puzzle_no = "12"
+puzzle_no = "10"
 
 puzzle_input = pd.read_csv("test puzzles/puzzle_"+puzzle_no+".csv", header=None)
 puzzle_input.replace('X', 0, inplace=True)
@@ -22,16 +22,19 @@ bottom = puzzle_input.T[3].tolist()
 left = puzzle_input.T[4].tolist()
 right = puzzle_input.T[5].tolist()
 
+start = time()
 solution = solve(grid_size, letter_set, top, bottom, left, right)
+print("Solved in", time() - start, "seconds.")
 
-if solution[0]:
-    name = "puzzle_output_"
-else:
-    name = "puzzle_output_(bestCase)_"
-
-output_path = "test_output\\"+name+puzzle_no+".csv"
-
-df = pd.DataFrame(solution[1].board_current_state())
-# df.replace(' ', 'X').to_csv(output_path, header=False, index=False)
-
-print("The solution was saved in", output_path)
+#
+# if solution[0]:
+#     name = "puzzle_output_"
+# else:
+#     name = "puzzle_output_(bestCase)_"
+#
+# output_path = "test_output\\"+name+puzzle_no+".csv"
+#
+# df = pd.DataFrame(solution[1].board_current_state())
+# # df.replace(' ', 'X').to_csv(output_path, header=False, index=False)
+#
+# print("The solution was saved in", output_path)
