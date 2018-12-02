@@ -7,10 +7,12 @@ of this puzzle.
 import pandas as pd
 import numpy as np
 import copy
-import time
+from time import sleep
+
+pd.set_option('display.max_columns', 1000)
 
 letter_options = []
-constraints = []
+top, bot, left, right = [], [], [], []
 grid_size = 0
 no_nan = 0
 
@@ -50,6 +52,12 @@ class Cell(object):
     def __call__(self, option):
         self.value = option
 
+    def __repr__(self):
+        return ','.join(self.value_set)
+
+    def __iter__(self):
+        yield [option for option in self.value_set]
+
     def set_options(self, letter):
         """
         Set value options for cell.
@@ -58,6 +66,9 @@ class Cell(object):
         """
         if self.check(letter):
             self.value_set += letter
+
+    def remove_option(self, option):
+        self.value_set.remove(option)
 
     def check(self, l):
         """
@@ -85,40 +96,16 @@ class EndViewBoard(object):
         """
         Initialize Board of the puzzle.
         """
-        self.top, self.bottom, self.left, self.right = constraints
 
         self.board = load_board()  # Numpy array of cell objects.
-        self.board = self.get_initial_state(self.board)
 
     def __repr__(self):
         return pd.DataFrame(self.board_current_state()).to_string()
 
     def __iter__(self):
-        return np.ndenumerate(self.board)
-
-    def get_initial_state(self, board):
-        """
-        Set values options of cells based on constraints.
-        :param board: NumPy array of cells on the board.
-        :return: NumPy array with initial values set.
-        """
-        top = self.top[::-1]
-        bot = self.bottom[::-1]
-        left = self.left[::-1]
-        right = self.right[::-1]
-        for cell in board[0]:
-            x = top.pop()
-            cell.set_options(x) if x else None
-        for cell in board[grid_size - 1]:
-            x = bot.pop()
-            cell.set_options(x) if x else None
-        for cell in board[:, 0]:
-            x = left.pop()
-            cell.set_options(x) if x else None
-        for cell in board[:, grid_size - 1]:
-            x = right.pop()
-            cell.set_options(x) if x else None
-        return board
+        for i in self.board:
+            for cell in i:
+                yield cell
 
     def remove_options(self, cell):
         letter = cell.value
@@ -164,13 +151,13 @@ class EndViewBoard(object):
             # above of cell.
             # Also check if row index is permissible. i.e Cell is not too far
             # down, making other cells in row invalid.
-            if try_value == self.top[c]:
+            if try_value == top[c]:
                 if r > no_nan:
                     return False
                 if not (board_fix_values[:, c][:r] == ' ').all():
                     return False
             else:
-                if self.top[c] != 0:
+                if top[c] != 0:
                     if set(column[:r]) == {' '}:
                         return False
 
@@ -178,13 +165,13 @@ class EndViewBoard(object):
             # below cell.
             # Also check if row index is permissible. i.e Cell is not too far
             # up, making other cells in row invalid.
-            if try_value == self.bottom[c]:
+            if try_value == bot[c]:
                 if r < grid_size - no_nan - 1:
                     return False
                 if not (board_fix_values[r + 1:][:, c] == ' ').all():
                     return False
             else:
-                if self.bottom[c] in column.tolist():
+                if bot[c] in column.tolist():
                     return False
 
         # Check entire Column
@@ -194,13 +181,13 @@ class EndViewBoard(object):
             # on left of the cell.
             # Also check if column index is permissible. i.e Cell is not too far
             # right, making other cells in row invalid.
-            if try_value == self.left[r]:
+            if try_value == left[r]:
                 if c > no_nan:
                     return False
                 if not (board_fix_values[r][:c] == ' ').all():
                     return False
             else:
-                if self.left[r] != 0:
+                if left[r] != 0:
                     if set(row[:c]) == {' '}:
                         return False
 
@@ -208,13 +195,13 @@ class EndViewBoard(object):
             # on right of the cell.
             # Also check if column index is permissible. i.e Cell is not too far
             # left, making other cells in row invalid.
-            if try_value == self.right[r]:
+            if try_value == right[r]:
                 if c < grid_size - 1 - no_nan:
                     return False
                 if not (board_fix_values[r][c + 1:] == ' ').all():
                     return False
             else:
-                if self.right[r] in row.tolist():
+                if right[r] in row.tolist():
                     return False
         return True
 
@@ -257,16 +244,49 @@ def remove(cell, value):
 
 
 def first_pass(board):
+    for cell in board:
+        row = cell.row
+        col = cell.column
+        if row == 0:
+            for x in top:
+                cell.set_options(x) if x else None
+        if col == 0:
+            for x in top:
+                cell.set_options(x) if x else None
+        if row == grid_size - 1:
+            for x in top:
+                cell.set_options(x) if x else None
+        if col == grid_size - 1:
+            for x in top:
+                cell.set_options(x) if x else None
+
+
+def second_pass(board):
     for (row, col), cell in board:
-        for option in cell.value_set:
-            if option == constraints[0][col] and row > no_nan:
-                remove(cell, option)
-            if option == constraints[1][col] and row < grid_size - 1 - no_nan:
-                remove(cell, option)
-            if option == constraints[2][row] and col > no_nan:
-                remove(cell, option)
-            if option == constraints[3][row] and col < grid_size - 1 - no_nan:
-                remove(cell, option)
+        print(row, col, cell)
+        for option in cell:
+            if row < no_nan:
+                if option == bot[col]:
+                    cell.remove_option(option)
+
+
+def guess_pythonic(board):
+    board_stack = [copy.deepcopy(board)]
+    best_solution = board_stack[-1]
+    cells = [cell for cell in board]
+    index = 0
+
+    while len(board_stack) > 0:
+        cell = cells[index]
+        if cell_set_option(cell, board_stack[-1]):
+            board_stack.append(copy.deepcopy(board_stack[-1]))
+            board_stack[-1].remove_options(cell)
+            best_solution = board_stack[-1]
+            index += 1
+        else:
+            board_stack.pop()
+            index -= 1
+    return [True if len(board_stack) else False, best_solution]
 
 
 def guess(board):
@@ -321,21 +341,28 @@ def solve(g_s, letter_set, t, b, l, r):
     """
     global letter_options
     global grid_size
-    global constraints
     global no_nan
+    global top, bot, left, right
     grid_size = g_s
     letter_options = letter_options + letter_set
     no_nan = grid_size - len(letter_options)
     constraints = [t, b, l, r]
+    top = constraints[0][::-1]
+    bot = constraints[1][::-1]
+    left = constraints[2][::-1]
+    right = constraints[3][::-1]
     if grid_size < len(letter_set):
         raise ValueError("Grid size not proper. Size of the board must be "
                          "greater than the length of the letter set.")
 
     board = EndViewBoard()
-
+    print(pd.DataFrame(board.board))
     print("Solving...")
     first_pass(board)
-    solved_board = guess(board)
+    # second_pass(board)
+    print(pd.DataFrame(board.board))
+    # exit()
+    solved_board = guess_pythonic(board)
 
     if solved_board[0]:
         print(solved_board[1], "\n")
