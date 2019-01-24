@@ -96,16 +96,41 @@ class EndViewBoard(object):
         """
         Initialize Board of the puzzle.
         """
+        self.top = top[::-1]
+        self.bottom = bot[::-1]
+        self.left = left[::-1]
+        self.right = right[::-1]
 
         self.board = load_board()  # Numpy array of cell objects.
+        self.get_initial_state(self.board)
 
     def __repr__(self):
         return pd.DataFrame(self.board_current_state()).to_string()
 
     def __iter__(self):
-        for i in self.board:
-            for cell in i:
-                yield cell
+        for cell in np.ravel(self.board):
+            yield cell
+
+    def get_initial_state(self, board):
+        """
+        Set values options of cells based on constraints.
+        :param board: NumPy array of cells on the board.
+        :return: NumPy array with initial values set.
+        """
+
+        for cell in board[0]:
+            x = self.top.pop()
+            cell.set_options(x) if x else None
+        for cell in board[grid_size - 1]:
+            x = self.bottom.pop()
+            cell.set_options(x) if x else None
+        for cell in board[:, 0]:
+            x = self.left.pop()
+            cell.set_options(x) if x else None
+        for cell in board[:, grid_size - 1]:
+            x = self.right.pop()
+            cell.set_options(x) if x else None
+        return board
 
     def remove_options(self, cell):
         letter = cell.value
@@ -224,16 +249,17 @@ def cell_set_option(cell, board):
     :return: True if value is valid. False if none are.
     """
     value = cell.value_set
-    try:
-        letter = value.pop()
-    except IndexError:
-        return False
-    if board.check_cell(cell, letter):
-        cell(letter)
-        return True
-    else:
-        if len(value) > 0:
-            return cell_set_option(cell, board)
+    found = False
+    while not found:
+        try:
+            letter = value.pop()
+        except IndexError:
+            return False
+        if board.check_cell(cell, letter):
+            cell(letter)
+            print(letter)
+            found = True
+            return True
 
 
 def remove(cell, value):
@@ -276,8 +302,9 @@ def guess_pythonic(board):
     cells = [cell for cell in board]
     index = 0
 
-    while len(board_stack) > 0:
+    while len(board_stack) > 0 and index >= 0:
         cell = cells[index]
+        print(cell)
         if cell_set_option(cell, board_stack[-1]):
             board_stack.append(copy.deepcopy(board_stack[-1]))
             board_stack[-1].remove_options(cell)
@@ -347,10 +374,10 @@ def solve(g_s, letter_set, t, b, l, r):
     letter_options = letter_options + letter_set
     no_nan = grid_size - len(letter_options)
     constraints = [t, b, l, r]
-    top = constraints[0][::-1]
-    bot = constraints[1][::-1]
-    left = constraints[2][::-1]
-    right = constraints[3][::-1]
+    top = constraints[0]
+    bot = constraints[1]
+    left = constraints[2]
+    right = constraints[3]
     if grid_size < len(letter_set):
         raise ValueError("Grid size not proper. Size of the board must be "
                          "greater than the length of the letter set.")
@@ -358,9 +385,9 @@ def solve(g_s, letter_set, t, b, l, r):
     board = EndViewBoard()
     print(pd.DataFrame(board.board))
     print("Solving...")
-    first_pass(board)
+    # first_pass(board)
     # second_pass(board)
-    print(pd.DataFrame(board.board))
+    # print(pd.DataFrame(board.board))
     # exit()
     solved_board = guess_pythonic(board)
 
