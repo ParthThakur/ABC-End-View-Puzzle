@@ -2,34 +2,29 @@ import numpy as np
 import pandas as pd
 
 
-def iscorner(row, column, g_size):
-    return any([all([row == 0, column == 0]),
-                all([row == g_size, column == g_size]),
-                all([row == 0, column == g_size]),
-                all([row == g_size, column == 0])])
-
-
-def central_array(array, num_blanks):
+def centre(array, num_blanks):
     x, y = array.shape
-    for index, value in np.ndenumerate(array[num_blanks:x - num_blanks, num_blanks:y-num_blanks]):
-        yield index, value
+    stop = max(0, num_blanks+1)
+    for value in array[stop:x - stop, stop:y - stop].flat:
+        yield value
 
 
 def corners(array):
-    for index, value in np.ndenumerate(array[::array.shape[0]-1, ::array.shape[1]-1]):
-        yield index, value
+    for value in (array[::array.shape[0]-1, ::array.shape[1]-1]).flat:
+        yield value
 
 
-def sides(array, num_blank):
+def sides(array, num_blanks):
     x, y = array.shape
-    iter1 = np.ndenumerate(array[[*list(range(num_blank+1)), *list(range(x-num_blank-1, x))]])
-    iter2 = np.ndenumerate(array[:, [*list(range(num_blank)), *list(range(x - num_blank-1, x))]])
-    for iter_ in [iter1, iter2]:
-        for index, value in iter_:
-            if iscorner(*index, x):
-                continue
-            else:
-                yield index, value
+    stop = max(0, num_blanks)
+    iter1 = array[:stop].flat
+    iter2 = array[x - stop:x].flat
+    iter3 = array[:, :stop].flat
+    iter4 = array[:, x - stop:x].flat
+
+    for iter_ in [iter1, iter2, iter3, iter4]:
+        for value in iter_:
+            yield value
 
 
 class Board:
@@ -41,8 +36,8 @@ class Board:
     def __init__(self, grid_size: int):
         Board.grid_size = grid_size - 1
         temp = []
-        for _ in range(grid_size):
-            temp.append([Cell() for _ in range(grid_size)])
+        for row in range(grid_size):
+            temp.append([Cell(row, column) for column in range(grid_size)])
         Board.board = np.array(temp)
 
     def __repr__(self):
@@ -70,46 +65,76 @@ class Board:
             cls.letter_options = frozenset(letter_set)
 
         cls.num_blank = cls.grid_size + 1 - len(cls.letter_options)
+        print(f'Grid size: {cls.grid_size} \nNum Blanks: {cls.num_blank} \nLetter Set: {cls.letter_options}')
 
-        top_constraint = initial_states['top']
+        top_constraints = initial_states['top']
         bot_constraints = initial_states['bottom']
         left_constraints = initial_states['left']
         right_constraints = initial_states['right']
 
-        top_bot = [top_constraint, bot_constraints]
+        top_bot = [top_constraints, bot_constraints]
         left_right = [left_constraints, right_constraints]
 
-        for (row, column), cell in corners(cls.board):
+        for cell in corners(cls.board):
+            row, column = cell.position
             c_1 = top_bot[0 if column == 0 else 1][0 if row == 0 else cls.grid_size]
             c_2 = left_right[0 if row == 0 else 1][0 if column == 0 else cls.grid_size]
 
             if c_1 == c_2:
                 cell.value_set = {c_1}
             else:
-                cell.value_set = {c_2, c_1}
-            print(row, column, c_1, c_2)
+                if [str(c_1), str(c_2)] == ['nan', 'nan']:
+                    cell.value_set = {np.nan, *cls.letter_options}
+                else:
+                    cell.value_set = {c_2, c_1}
 
-        for (row, column), cell in sides(cls.board, cls.num_blank):
-            if row <= cls.num_blank:
-                cell.value_set.add(top_constraint[column])
-            elif row >= cls.grid_size - cls.num_blank:
-                cell.value_set.add(bot_constraints[column])
+            cell.freeze_values()
 
-            if column <= cls.num_blank:
-                cell.value_set.add(left_constraints[row])
-            elif column >= cls.grid_size - cls.num_blank:
-                cell.value_set.add(right_constraints[row])
+        for cell in sides(cls.board, cls.num_blank):
+            row, column = cell.position
+            try:
+                if row <= cls.num_blank:
+                    cell.value_set.add(top_constraints[column])
+                elif row >= cls.grid_size - cls.num_blank:
+                    cell.value_set.add(bot_constraints[column])
+
+                if column <= cls.num_blank:
+                    cell.value_set.add(left_constraints[row])
+                elif column >= cls.grid_size - cls.num_blank:
+                    cell.value_set.add(right_constraints[row])
+            except AttributeError:
+                continue
+
+            if cell.isnan:
+                cell.value_set.update(cls.letter_options)
+            cell.value_set.add(np.nan)
+
+        for cell in centre(cls.board, cls.num_blank):
+            row, column = cell.position
+            constraints = [top_constraints[column], bot_constraints[column],
+                           left_constraints[row], right_constraints[row]]
+            for option in cls.letter_options:
+                cell.value_set.add(option if option not in constraints else np.nan)
+            cell.value_set.add(np.nan)
+
         cls.freeze_cells()
 
 
 class Cell:
 
-    def __init__(self):
+    def __init__(self, row, column):
         self.value = None
         self.value_set = set()
+        self.position = (row, column)
 
     def freeze_values(self):
-        self.value_set.discard(np.nan)
+        self.value_set = frozenset(self.value_set)
+        # self.value_set.discard(np.nan)
+
+    @property
+    def isnan(self):
+        check = [x for x in self.value_set if str(x) != 'nan']
+        return not bool(check)
 
     def __repr__(self):
-        return str(self.value_set)
+        return str(list(self.value_set))

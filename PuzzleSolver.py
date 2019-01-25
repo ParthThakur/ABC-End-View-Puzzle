@@ -13,9 +13,9 @@ import BFS
 puzzle_no = "12"
 
 puzzle_input = pd.read_csv("test puzzles/puzzle_" + puzzle_no + ".csv", header=None)
-puzzle_input.replace('X', None, inplace=True)
+puzzle_input.replace('X', np.nan, inplace=True)
 
-print(puzzle_input, end="\n\n")
+# print(puzzle_input, end="\n\n")
 grid_size = int(puzzle_input[0][0])
 letter_set = puzzle_input.T[1].dropna().tolist()
 
