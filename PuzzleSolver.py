@@ -10,7 +10,7 @@ import numpy as np
 import DFS
 import BFS
 
-puzzle_no = "12"
+puzzle_no = "9"
 
 puzzle_input = pd.read_csv("test puzzles/puzzle_" + puzzle_no + ".csv", header=None)
 puzzle_input.replace('X', np.nan, inplace=True)
@@ -28,7 +28,7 @@ constraints = {
 
 print(constraints)
 
-BFS.solve(constraints, grid_size, letter_set)
+DFS.solve(constraints, grid_size, letter_set)
 
 # if solution[0]:
 #     name = "puzzle_output_"
