@@ -1,5 +1,10 @@
 import numpy as np
 import pandas as pd
+import time
+
+
+def corner_pos(x, y):
+    return [(0, 0), (x - 1, y - 1), (0, x - 1), (y - 1, 0)]
 
 
 def centre(array, num_blanks):
@@ -16,7 +21,6 @@ def corners(array):
 
 def sides(array):
     x, y = array.shape
-    corners_ = [(0, 0), (x-1, y-1), (0, x-1), (y-1,0)]
     iter1 = array[0].flat
     iter2 = array[:, 0].flat
     iter3 = array[-1].flat
@@ -24,7 +28,7 @@ def sides(array):
 
     for iter_ in [iter1, iter2, iter3, iter4]:
         for value in iter_:
-            if value.position in corners_:
+            if value.position in corner_pos(x, y):
                 continue
             yield value
 
@@ -66,11 +70,12 @@ class Board:
 
     @classmethod
     def add_nan(cls):
-        corner_cells = list(corners(cls.board))
         for cell in cls.board.flat:
             cell.value_set = set(cell.value_set)
-            if cell not in corner_cells:
+            if cell.position not in corner_pos(*cls.board.shape):
                 cell.value_set |= {' '}
+            cell.fixed_set = True
+            cell.value_set = set(cell.value_set)
 
     @classmethod
     def set_initial_state(cls, initial_states, letter_set=None):
@@ -105,25 +110,29 @@ class Board:
             row, column = cell.position
             constraint_1 = top_bot[0 if row == 0 else 1]
             constraint_2 = left_right[0 if column == 0 else 1]
-
             close_1 = constraint_1[column]
             close_2 = constraint_2[row]
 
-            far_1 = constraint_1[cls.grid_size if row == 0 else 0]
-            far_2 = constraint_2[cls.grid_size if column == 0 else 0]
+            constraint_1 = top_bot[1 if row == 0 else 0]
+            constraint_2 = left_right[1 if column == 0 else 0]
+            far_1 = constraint_1[column]
+            far_2 = constraint_2[row]
 
             if close_1 == close_2:
-                cell.value_set = {close_1}
+                cell.value = close_1
+                cell.value_fixed = True
             else:
                 if [str(close_1), str(close_2)] == ['nan', 'nan']:
-                    cell.value_set = {' ', *[x for x in cls.letter_options if x not in [far_1, far_2]]}
+                    cell.value_set = {' ', *cls.letter_options}
                 elif str(close_1) == 'nan' or str(close_2) == 'nan':
                     cell.value_set = {str(close_1), str(close_2), ' '}
                 else:
-                    cell.value_set = {' '}
+                    cell.value = ' '
+                    cell.value_fixed = True
+            cell.value_set = {x for x in cell.value_set if x not in [far_1, far_2]}
 
-            if [str(close_1), str(close_2)] == ['nan', 'nan']:
-                cell.value_set = {' ', *[x for x in cls.letter_options if x not in [far_1, far_2]]}
+            # if [str(close_1), str(close_2)] == ['nan', 'nan']:
+            #     cell.value_set = {' ', *[x for x in cls.letter_options if x not in [far_1, far_2]]}
 
             cell.freeze_values()
 
@@ -153,27 +162,105 @@ class Board:
         for cell in remnants(cls.board):
             row, column = cell.position
             try:
-                constraint_1 = top_bot[0 if row > cls.num_blank else 1]
-                constraint_2 = left_right[0 if column > cls.num_blank else 1]
+                if (all([row == cls.grid_size / 2, column == cls.grid_size / 2]) and
+                   all([row == cls.num_blank, column == cls.num_blank])):
+                    value_set = cls.letter_options
+                else:
+                    constraint_1 = top_bot[0 if row > cls.num_blank else 1]
+                    constraint_2 = left_right[0 if column > cls.num_blank else 1]
 
-                far_1 = constraint_1[column]
-                far_2 = constraint_2[row]
+                    far_1 = constraint_1[column]
+                    far_2 = constraint_2[row]
 
-                cell.value_set = {*[x for x in cls.letter_options if x not in [far_1, far_2]]}
-
+                    value_set = [x for x in cls.letter_options if x not in [far_1, far_2]]
             except AttributeError:
                 continue
+            cell.value_set = {*value_set}
 
         cls.add_nan()
+        cls.second_pass()
+
+    @classmethod
+    def check_blanks(cls, position):
+        row_value = [cell.value for cell in cls.board[position[0]]]
+        column_value = [cell.value for cell in cls.board[:, position[1]]]
+        if row_value.count(' ') == cls.num_blank:
+            # print(f'{position[0]} row has {cls.num_blank} blanks.')
+            for cell in cls.board[position[0]]:
+                yield cell
+        if column_value.count(' ') == cls.num_blank:
+            # print(f'{position[1]} column has {cls.num_blank} blanks.')
+            for cell in cls.board[:, position[1]]:
+                yield cell
+
+    @classmethod
+    def second_pass(cls):
+        print(pd.DataFrame(cls.board).to_string())
+        previous = np.copy([0])
+        new = np.array([1])
+        count = 0
+        while not np.array_equal(previous, new):
+            count += 1
+            previous = np.copy(new)
+            for cell in cls.board.flat:
+                row, column = cell.position
+                if cell.value_fixed:
+                    if cell.value != ' ':
+                        # time.sleep(.5)
+                        # print(cell.position, ': fixed.')
+                        for ce in cls.board[row]:
+                            try:
+                                tmp = ce.value_set
+                                tmp.remove(cell.value)
+                                # time.sleep(.5)
+                                # print(f'\tremove {cell.value} from {ce.position}')
+                                cell.pass_ = True
+                                ce.value_set = tmp
+                            except KeyError:
+                                pass
+                        for ce in cls.board[:, column]:
+                            try:
+                                tmp = ce.value_set
+                                tmp.remove(cell.value)
+                                # time.sleep(.5)
+                                # print(f'\tremove {cell.value} from {ce.position}')
+                                ce.value_set = tmp
+                            except KeyError:
+                                pass
+                # if len(cell.value_set) == 1:
+                #     time.sleep(.5)
+                #     print(f'{cell.position} valueset contains one element.')
+                #     cell.value = cell.value_set.pop()
+                #     cell.value_fixed = True
+                for ce in cls.check_blanks(cell.position):
+                    try:
+                        # time.sleep(.5)
+                        # print(f'\tremove from {ce.position}')
+                        tmp = ce.value_set
+                        tmp.remove(' ')
+                        ce.value_set = tmp
+                    except KeyError:
+                        pass
+                # print(f'Done removing blank from {cell.position}')
+            new = cls.board
+            # time.sleep(.5)
+            # print(previous == new, previous, new, '\n\n', sep='\n')
+            # time.sleep(.5)
+            # print(count)
+            # print(f'id of previous: {id(previous)}. \nid of new: {id(new)}.'
+            #       f'\n\t previous.id == new.id: {id(previous) == id(new)}.'
+            #       f'\n\t previous == new: {np.array_equal(previous, new)}')
 
 
 class Cell:
     return_value_set = True
 
-    def __init__(self, row, column):
+    def __init__(self, row: int, column: int):
+        self.position = (row, column)
+        self.value_fixed = False
+        self.fixed_set = False
         self.value = None
         self.value_set = set()
-        self.position = (row, column)
 
     def freeze_values(self):
         self.value_set = frozenset([x for x in self.value_set if str(x) != 'nan'])
@@ -197,3 +284,24 @@ class Cell:
         if self.return_value_set:
             return str(self.value_set)
         return str(self.value)
+
+    def __setattr__(self, key, value, override=False):
+        if key == 'value' and self.value_fixed or override:
+            raise AttributeError(f'Value of the cell has been fixed and cannot be changed.'
+                                 f'\nCell at position: {self.position}')
+        elif key == 'value_set' and self.fixed_set:
+            self.__dict__['value_set'] = value
+            # print(f'\t\t{self.position} valueset: {value}')
+            if len(self.__dict__['value_set']) == 1:
+                # time.sleep(0.5)
+                # print(f'\t\t {self.position} valueset has one element.')
+                self.__dict__['value'] = self.value_set.pop()
+                self.__dict__['value_fixed'] = True
+        else:
+            self.__dict__[key] = value
+
+    def __eq__(self, other):
+        return str(self.value) == str(other.value)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
